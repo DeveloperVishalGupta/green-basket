@@ -1,0 +1,53 @@
+{
+  "name": "iqra-fashion-server",
+  "version": "1.0.0",
+  "description": "Backend API for Apna Bazaar E-commerce Platform",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "create-admin": "node scripts/createAdmin.js",
+    "seed": "node scripts/seedData.js",
+    "update-sales": "node scripts/updateSalesCount.js"
+  },
+  "keywords": [
+    "ecommerce",
+    "fashion",
+    "api",
+    "express",
+    "mongodb"
+  ],
+  "author": "Arka Services",
+  "license": "ISC",
+  "dependencies": {
+    "@ant-design/cssinjs": "^2.0.1",
+    "@aws-sdk/client-ses": "^3.969.0",
+    "axios": "^1.13.2",
+    "bcryptjs": "^2.4.3",
+    "chart.js": "^4.5.1",
+    "cloudinary": "^2.0.1",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.0",
+    "morgan": "^1.10.0",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.7",
+    "razorpay": "^2.9.6",
+    "react-chartjs-2": "^5.3.1",
+    "streamifier": "^0.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.2",
+    "nodemon": "^3.0.2"
+  }
+}

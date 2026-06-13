@@ -1,0 +1,189 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F8FAFC;
+  --foreground: #1F2937;
+  
+  /* Apna Bazaar Color Scheme */
+  --primary: #16A34A;      /* Fresh Green */
+  --secondary: #22C55E;    /* Light Green */
+  --accent: #FACC15;       /* Yellow */
+  --success: #22C55E;
+  --warning: #FACC15;
+  --danger: #EF4444;
+  --info: #16A34A;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Apna Bazaar Custom Utilities */
+.btn-primary {
+  @apply bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition;
+}
+
+.btn-secondary {
+  @apply bg-green-50 hover:bg-green-100 text-green-700 px-4 py-2 rounded-lg font-semibold transition;
+}
+
+.btn-accent {
+  @apply bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg font-semibold transition;
+}
+
+.card-grocery {
+  @apply bg-white rounded-lg border border-green-100 hover:border-green-300 transition shadow-sm;
+}
+
+.badge-organic {
+  @apply bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold;
+}
+
+.badge-fresh {
+  @apply bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-semibold;
+}
+
+.badge-seasonal {
+  @apply bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold;
+}
+
+/* Hide scrollbar for horizontal scroll sections */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Safe area for bottom navigation on mobile */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Line clamp utilities */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Custom Carousel Styles */
+.category-carousel .slick-prev,
+.category-carousel .slick-next {
+  width: 44px;
+  height: 44px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  z-index: 10;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  bottom: -60px !important;
+  top: auto !important;
+  opacity: 1 !important;
+}
+
+.category-carousel .slick-prev.slick-disabled,
+.category-carousel .slick-next.slick-disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed;
+}
+
+.category-carousel .slick-prev:hover,
+.category-carousel .slick-next:hover {
+  background: linear-gradient(to right, #059669, #14b8a6);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  transform: scale(1.1);
+}
+
+.category-carousel .slick-prev svg,
+.category-carousel .slick-next svg {
+  color: #059669;
+  font-size: 18px;
+  transition: color 0.3s;
+}
+
+.category-carousel .slick-prev:hover svg,
+.category-carousel .slick-next:hover svg {
+  color: white;
+}
+
+.category-carousel .slick-prev {
+  left: 50%;
+  margin-left: -80px;
+}
+
+.category-carousel .slick-next {
+  right: 50%;
+  margin-right: -80px;
+}
+
+.category-carousel .slick-prev:before,
+.category-carousel .slick-next:before {
+  display: none;
+}
+
+.category-carousel .slick-dots {
+  bottom: -50px;
+}
+
+.category-carousel .slick-dots li button {
+  background: #d1d5db;
+}
+
+.category-carousel .slick-dots li.slick-active button {
+  background: linear-gradient(to right, #059669, #14b8a6);
+}
+
+.category-carousel .slick-slide > div {
+  padding: 0 8px;
+}
+
+.ant-select-item-option-selected {
+  background-color: lightgray !important;
+}
