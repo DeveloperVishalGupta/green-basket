@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 /**
  * Category Schema
@@ -8,14 +8,19 @@ const categorySchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Category name is required'],
+      required: [true, "Category name is required"],
       unique: true,
       trim: true,
+      lowercase: true,
     },
     slug: {
       type: String,
       unique: true,
       lowercase: true,
+    },
+    isFeatured: {
+      type: Boolean,
+      default: false,
     },
     description: {
       type: String,
@@ -28,7 +33,7 @@ const categorySchema = new mongoose.Schema(
     },
     parent: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Category',
+      ref: "Category",
       default: null,
     },
     isActive: {
@@ -44,7 +49,7 @@ const categorySchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Index for better query performance
@@ -53,34 +58,34 @@ categorySchema.index({ parent: 1 });
 categorySchema.index({ isActive: 1 });
 
 // Virtual for subcategories
-categorySchema.virtual('subcategories', {
-  ref: 'Category',
-  localField: '_id',
-  foreignField: 'parent',
+categorySchema.virtual("subcategories", {
+  ref: "Category",
+  localField: "_id",
+  foreignField: "parent",
 });
 
 /**
  * Generate slug from name before saving
  */
-categorySchema.pre('save', async function (next) {
+categorySchema.pre("save", async function (next) {
   // Always generate slug if name exists and slug is not manually set
-  if (this.isModified('name') || !this.slug) {
+  if (this.isModified("name") || !this.slug) {
     let slug = this.name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
     // Check for uniqueness
     let unique = false;
     let counter = 0;
     let finalSlug = slug;
-    
+
     while (!unique) {
-      const existing = await this.constructor.findOne({ 
+      const existing = await this.constructor.findOne({
         slug: finalSlug,
-        _id: { $ne: this._id }
+        _id: { $ne: this._id },
       });
-      
+
       if (!existing) {
         unique = true;
       } else {
@@ -88,10 +93,10 @@ categorySchema.pre('save', async function (next) {
         finalSlug = `${slug}-${counter}`;
       }
     }
-    
+
     this.slug = finalSlug;
   }
   next();
 });
 
-export default mongoose.model('Category', categorySchema);
+export default mongoose.model("Category", categorySchema);

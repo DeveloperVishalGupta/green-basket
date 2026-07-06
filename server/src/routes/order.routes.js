@@ -1,7 +1,7 @@
 import express from 'express';
 import { body } from 'express-validator';
 import orderController from '../controllers/orderController.js';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authenticate, isAuthorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 const router = express.Router();
 
@@ -13,7 +13,7 @@ const router = express.Router();
 router.get(
   '/admin/all',
   authenticate,
-  authorize('admin'),
+  isAuthorize('admin'),
   orderController.getAllOrders
 );
 
@@ -25,7 +25,7 @@ router.get(
 router.get(
   '/all',
   authenticate,
-  authorize('admin'),
+  isAuthorize('admin'),
   orderController.getAllOrders
 );
 
@@ -81,7 +81,7 @@ router.post(
 router.put(
   '/:id/status',
   authenticate,
-  authorize('admin'),
+  isAuthorize('admin'),
   [
     body('status')
       .isIn(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'])
@@ -126,7 +126,7 @@ router.post(
 router.put(
   '/:id/shipment',
   authenticate,
-  authorize('admin'),
+  isAuthorize('admin'),
   [
     body('shipmentOrderId').optional(),
     body('shipmentId').optional(),

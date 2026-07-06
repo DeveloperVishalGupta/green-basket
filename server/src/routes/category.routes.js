@@ -1,7 +1,7 @@
 import express from 'express';
 import { body } from 'express-validator';
 import categoryController from '../controllers/categoryController.js';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authenticate, isAuthorize } from '../middleware/auth.js';
 import { handleUploadError, uploadSingleImage } from '../middleware/upload.js';
 import { validate } from '../middleware/validate.js';
 const router = express.Router();
@@ -35,7 +35,7 @@ router.get('/:slug', categoryController.getCategoryBySlug);
 router.post(
   '/',
   authenticate,
-  authorize('admin'),
+  isAuthorize('admin'),
   uploadSingleImage,
   handleUploadError,
   [
@@ -55,7 +55,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  authorize('admin'),
+  isAuthorize('admin'),
   uploadSingleImage,
   handleUploadError,
   categoryController.updateCategory
@@ -69,7 +69,7 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  authorize('admin'),
+  isAuthorize('admin'),
   categoryController.deleteCategory
 );
 

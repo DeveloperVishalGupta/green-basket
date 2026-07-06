@@ -1,13 +1,13 @@
 import express from 'express';
 import adminController from '../controllers/adminController.js';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authenticate, isAuthorize } from '../middleware/auth.js';
 const router = express.Router();
 
 /**
  * All routes require admin authentication
  */
 router.use(authenticate);
-router.use(authorize('admin'));
+router.use(isAuthorize('admin'));
 
 /**
  * Dashboard routes

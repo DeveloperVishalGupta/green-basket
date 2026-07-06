@@ -20,9 +20,10 @@ export const useAdminDashboard = (period) => {
           params: { period },
         }
       );
+      console.log("Dashboard data:", response.data);
       return response.data.data;
     },
-    enabled: Boolean(period),
+    enabled: !!period,
     staleTime: DEFAULT_CACHE_TIME,
   });
 };

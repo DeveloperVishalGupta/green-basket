@@ -46,7 +46,7 @@ export default function Header() {
               {/* Logo & Brand */}
               <Link href="/" className="flex items-center gap-2 shrink-0">
                 <div className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-xl bg-linear-to-br from-emerald-600 to-teal-600 shadow-lg">
-                  <span className="text-sm md:text-lg font-bold text-white">IF</span>
+                  <span className="text-sm md:text-lg font-bold text-white">AB</span>
                 </div>
                 <div className="hidden sm:block">
                   <h1 className="text-base md:text-lg font-bold text-gray-900 leading-tight">Apna Bazaar</h1>

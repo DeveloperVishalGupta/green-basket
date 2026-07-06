@@ -3,8 +3,8 @@
  * Centralized data fetching for products using React Query
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productsAPI } from '@/lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 /**
  * Query keys for products
@@ -127,7 +127,8 @@ export function useCreateProduct() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (productData) => productsAPI.create(productData),
+    mutationFn: async (formData) => {
+      return productsAPI.create(formData)},
     onSuccess: () => {
       // Invalidate and refetch products list
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
@@ -142,7 +143,7 @@ export function useUpdateProduct() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }) => productsAPI.update(id, data),
+    mutationFn: ({ id, formData }) => productsAPI.update(id, formData),
     onSuccess: (data, variables) => {
       // Invalidate specific product and lists
       queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.id) });

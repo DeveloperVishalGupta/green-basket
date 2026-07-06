@@ -138,6 +138,9 @@ class OrderController {
         paymentMethod,
         pricing: frontendPricing,
         coupon,
+        notes,
+        deliveryDate,
+        deliveryTimeSlot,
       } = req.body;
 
       // Validate items
@@ -194,9 +197,9 @@ class OrderController {
         // Note: Stock will be deducted when order is confirmed
       }
 
-      // --- DELIVERY FEE LOGIC: Apply ₹90 fee only if subtotal < 1000 (must match frontend) ---
+      // --- DELIVERY FEE LOGIC: ₹25 for orders ≤ ₹199; free above ₹199 (must match frontend) ---
       let discount = 0;
-      let deliveryFee = calculatedSubtotal < 1000 ? 90 : 0;
+      let deliveryFee = calculatedSubtotal > 199 ? 0 : 25;
       let couponData = null;
       
       // Coupon logic commented out (not in use)
@@ -281,6 +284,9 @@ class OrderController {
           total: calculatedTotal,
         },
         coupon: couponData,
+        notes: notes || undefined,
+        deliveryDate: deliveryDate ? new Date(deliveryDate) : undefined,
+        deliveryTimeSlot: deliveryTimeSlot || undefined,
         statusHistory: [
           {
             status: 'pending',

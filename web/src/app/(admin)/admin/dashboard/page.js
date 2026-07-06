@@ -69,6 +69,7 @@ export default function AdminDashboard() {
     );
   }
 
+  console.log('Dashboard Data:', dashboard);
   const { overview, revenue, topProducts, recentOrders, lowStockProducts, categoryStats } = dashboard || {};
 
   // Revenue chart data

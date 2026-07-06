@@ -108,7 +108,7 @@ class AdminController {
           .populate('user', 'firstName lastName email'),
         
         // Low stock products (stock <= 5)
-        Product.find({ stock: { $lte: 5, $gt: 0 }, isActive: true })
+        Product.find({ stock: { $lte: 5, }, isActive: true })
           .sort({ stock: 1 })
           .limit(5)
           .select('name stock slug')

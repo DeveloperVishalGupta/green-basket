@@ -3,28 +3,10 @@
   "editor.formatOnSave": true,
   "editor.tabSize": 2,
   "editor.indentSize": 2,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
 
   /* ---------- Prettier ---------- */
   "prettier.bracketSameLine": true,
-
-  "[javascript]": {
-    "editor.defaultFormatter": "prettier.prettier-vscode"
-  },
-  "[javascriptreact]": {
-    "editor.defaultFormatter": "prettier.prettier-vscode"
-  },
-  "[json]": {
-    "editor.defaultFormatter": "prettier.prettier-vscode"
-  },
-  "[jsonc]": {
-    "editor.defaultFormatter": "prettier.prettier-vscode"
-  },
-  "[html]": {
-    "editor.defaultFormatter": "prettier.prettier-vscode"
-  },
-  "[css]": {
-    "editor.defaultFormatter": "prettier.prettier-vscode"
-  },
 
   /* ---------- ESLint (IMPORTANT for JS errors) ---------- */
   "editor.codeActionsOnSave": {

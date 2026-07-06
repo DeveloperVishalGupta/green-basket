@@ -1,6 +1,6 @@
 import express from 'express';
 import wishlistController from '../controllers/wishlistController.js';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authenticate, isAuthorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -22,6 +22,6 @@ router.post('/:productId', authenticate, wishlistController.addToWishlist);
 router.delete('/:productId', authenticate, wishlistController.removeFromWishlist);
 
 // Cleanup expired items (admin only)
-router.post('/cleanup', authenticate, authorize('admin'), wishlistController.cleanupExpired);
+router.post('/cleanup', authenticate, isAuthorize('admin'), wishlistController.cleanupExpired);
 
 export default router;

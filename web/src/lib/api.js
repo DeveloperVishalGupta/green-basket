@@ -143,14 +143,21 @@ export const productsAPI = {
    * Create new product (Admin/Vendor only)
    * @param {Object} productData - Product data
    */
-  create: (productData) => apiClient.post('/api/products', productData),
+  create: async (formdata) => apiClient.post('/api/products', formdata,{
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }
+   
+  ),
+  
   
   /**
    * Update product
    * @param {string} id - Product ID
    * @param {Object} productData - Updated product data
    */
-  update: (id, productData) => apiClient.put(`/api/products/${id}`, productData),
+  update: (id, formData) => apiClient.put(`/api/products/${id}`, formData),
   
   /**
    * Delete product (Admin only)

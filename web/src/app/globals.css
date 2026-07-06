@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #F8FAFC;
-  --foreground: #1F2937;
-  
+  --background: #f8fafc;
+  --foreground: #1f2937;
+
   /* Apna Bazaar Color Scheme */
-  --primary: #16A34A;      /* Fresh Green */
-  --secondary: #22C55E;    /* Light Green */
-  --accent: #FACC15;       /* Yellow */
-  --success: #22C55E;
-  --warning: #FACC15;
-  --danger: #EF4444;
-  --info: #16A34A;
+  --primary: #16a34a; /* Fresh Green */
+  --secondary: #22c55e; /* Light Green */
+  --accent: #facc15; /* Yellow */
+  --success: #22c55e;
+  --warning: #facc15;
+  --danger: #ef4444;
+  --info: #16a34a;
 }
 
 @theme inline {
@@ -68,12 +68,12 @@ body {
 
 /* Hide scrollbar for horizontal scroll sections */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
+  display: none; /* Chrome, Safari and Opera */
 }
 
 /* Safe area for bottom navigation on mobile */
@@ -186,4 +186,8 @@ body {
 
 .ant-select-item-option-selected {
   background-color: lightgray !important;
+}
+
+.ant-table-cell {
+  padding: 0.5rem !important;
 }

@@ -150,7 +150,7 @@ export default function BottomNav() {
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-[#ED6C30] flex items-center justify-center text-white font-bold text-lg">
-                IF
+                AB
               </div>
               <span className="text-xl font-bold text-gray-800">Apna Bazaar</span>
             </div>

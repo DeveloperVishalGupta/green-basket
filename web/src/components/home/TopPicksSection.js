@@ -1,11 +1,10 @@
+"use client";
 
-'use client';
-
-import ProductCard from '@/components/home/ProductCard';
-import { useFeaturedProducts } from '@/hooks/useProducts';
-import { RightOutlined } from '@ant-design/icons';
-import { Alert, Spin } from 'antd';
-import Link from 'next/link';
+import ProductCard from "@/components/home/ProductCard";
+import { useFeaturedProducts } from "@/hooks/useProducts";
+import { RightOutlined } from "@ant-design/icons";
+import { Alert, Spin } from "antd";
+import Link from "next/link";
 
 export default function TopPicksSection() {
   const { data, isLoading, error } = useFeaturedProducts();
@@ -36,8 +35,7 @@ export default function TopPicksSection() {
         </div>
         <Link
           href="/products"
-          className="text-sm md:text-base font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 hover:gap-2 transition-all"
-        >
+          className="text-sm md:text-base font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 hover:gap-2 transition-all">
           View all <RightOutlined className="text-xs" />
         </Link>
       </div>
@@ -54,7 +52,7 @@ export default function TopPicksSection() {
               <ProductCard key={product._id} product={product} />
             ))}
           </div>
-          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
+          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4  gap-4 lg:gap-6">
             {products.map((product) => (
               <ProductCard key={product._id} product={product} />
             ))}

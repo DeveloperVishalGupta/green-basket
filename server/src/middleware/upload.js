@@ -1,5 +1,5 @@
-import multer from 'multer';
-import path from 'path';
+import multer from "multer";
+import path from "path";
 
 /**
  * Multer configuration for handling file uploads
@@ -18,19 +18,19 @@ const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
   // Allowed file types
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
-  
+
   // Check file extension
   const extname = allowedTypes.test(
-    path.extname(file.originalname).toLowerCase()
+    path.extname(file.originalname).toLowerCase(),
   );
-  
+
   // Check mime type
   const mimetype = allowedTypes.test(file.mimetype);
-  
+
   if (extname && mimetype) {
     cb(null, true);
   } else {
-    cb(new Error('Only image files (jpeg, jpg, png, gif, webp) are allowed!'));
+    cb(new Error("Only image files (jpeg, jpg, png, gif, webp) are allowed!"));
   }
 };
 
@@ -49,12 +49,12 @@ const upload = multer({
 /**
  * Upload multiple images (up to 5)
  */
-const uploadProductImages = upload.array('images', 5);
+const uploadProductImages = upload.array("images", 5);
 
 /**
  * Upload single image
  */
-const uploadSingleImage = upload.single('image');
+const uploadSingleImage = upload.single("image");
 
 /**
  * Handle multer errors
@@ -65,17 +65,17 @@ const uploadSingleImage = upload.single('image');
  */
 const handleUploadError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
-    console.error('Multer upload error:', err);
-    if (err.code === 'LIMIT_FILE_SIZE') {
+    console.error("Multer upload error:", err);
+    if (err.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
         success: false,
-        message: 'File size too large. Maximum size is 3MB per file.',
+        message: "File size too large. Maximum size is 3MB per file.",
       });
     }
-    if (err.code === 'LIMIT_FILE_COUNT') {
+    if (err.code === "LIMIT_FILE_COUNT") {
       return res.status(400).json({
         success: false,
-        message: 'Too many files. Maximum 5 files allowed.',
+        message: "Too many files. Maximum 5 files allowed.",
       });
     }
     return res.status(400).json({
@@ -83,15 +83,15 @@ const handleUploadError = (err, req, res, next) => {
       message: err.message,
     });
   }
-  
+
   if (err) {
-    console.error('Upload error:', err);
+    console.error("Upload error:", err);
     return res.status(400).json({
       success: false,
       message: err.message,
     });
   }
-  
+
   next();
 };
 
@@ -103,29 +103,79 @@ const handleUploadError = (err, req, res, next) => {
  * @param {Function} next - Next middleware
  */
 const parseArrayFields = (req, res, next) => {
-  if (req.body) {
-    // Handle fields with [] suffix (sent as multiple values with same key)
-    Object.keys(req.body).forEach(key => {
-      if (key.endsWith('[]')) {
-        const actualKey = key.slice(0, -2); // Remove [] suffix
+  try {
+    console.log("req.body on upload middleware", req.body);
+    // Parse JSON payload from FormData
+    if (req.body?.data) {
+      req.body = JSON.parse(req.body.data);
+    }
+
+    // Handle fields with [] suffix
+    Object.keys(req.body || {}).forEach((key) => {
+      if (key.endsWith("[]")) {
+        const actualKey = key.slice(0, -2);
         const values = req.body[key];
-        
-        // If it's already an array, use it; if single value, wrap in array
+
         req.body[actualKey] = Array.isArray(values) ? values : [values];
-        
-        // Remove the original key with []
+
         delete req.body[key];
       }
     });
+
+    next();
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid JSON data",
+      error: error.message,
+    });
   }
-  
-  next();
+};
+
+export const parseProductFormData = (req, res, next) => {
+  try {
+    if (req.body.categories) {
+      req.body.categories = JSON.parse(req.body.categories);
+    }
+
+    if (req.body.variants) {
+      req.body.variants = JSON.parse(req.body.variants);
+    }
+
+    if (req.body.healthBenefits) {
+      req.body.healthBenefits = JSON.parse(req.body.healthBenefits);
+    }
+
+    [
+      "isOrganic",
+      "isSeasonal",
+      "isBestSeller",
+      "isActive",
+      "isFeatured",
+      "trackInventory",
+    ].forEach((field) => {
+      if (req.body[field] !== undefined) {
+        req.body[field] = req.body[field] === "true";
+      }
+    });
+
+    if (req.body.stock) {
+      req.body.stock = Number(req.body.stock);
+    }
+
+    next();
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid form data",
+    });
+  }
 };
 
 export {
-    handleUploadError,
-    parseArrayFields, upload,
-    uploadProductImages,
-    uploadSingleImage
+  handleUploadError,
+  parseArrayFields,
+  upload,
+  uploadProductImages,
+  uploadSingleImage,
 };
-

@@ -163,6 +163,11 @@ const orderSchema = new mongoose.Schema(
       enum: ['customer', 'admin'],
     },
     notes: String,
+    deliveryDate: Date,
+    deliveryTimeSlot: {
+      type: String,
+      enum: ['morning', 'afternoon', 'evening', 'night'],
+    },
     
     // Razorpay payment integration
     razorpayOrderId: String,

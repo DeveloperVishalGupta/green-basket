@@ -53,7 +53,7 @@ export const authenticate = async (req, res, next) => {
  * Checks if user has required role
  * @param {...string} roles - Allowed roles
  */
-export const authorize = (...roles) => {
+export const isAuthorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({

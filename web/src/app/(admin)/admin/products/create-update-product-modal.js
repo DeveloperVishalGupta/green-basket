@@ -1,41 +1,43 @@
-'use client';
+"use client";
 
-import { apiClient } from '@/lib/api';
-// import { useCategories } from '@/services/admin/categories';
-import { useProductById, useProductsOptions } from '@/services/admin/products';
-import { useCategories } from '@/services/categories';
-import { UploadOutlined } from '@ant-design/icons';
-import { App, Button, Form, Input, InputNumber, Modal, Select, Switch, Upload } from 'antd';
-import { useEffect, useState } from 'react';
+import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
+import { useProductById } from "@/services/admin/products";
+import { useCategories } from "@/services/categories";
+import { UploadOutlined } from "@ant-design/icons";
+import {
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  message,
+  Modal,
+  Select,
+  Switch,
+  Upload,
+} from "antd";
+import { useEffect, useState } from "react";
 
 const { TextArea } = Input;
 
-/**
- * Reusable modal component for creating and updating products
- * @param {Object} props
- * @param {boolean} props.open - Modal visibility state
- * @param {Function} props.onClose - Callback to close modal
- * @param {Function} props.onSuccess - Callback after successful operation
- * @param {Object} props.product - Product data for editing (null for create mode)
- */
 export default function CreateUpdateProductModal({
   open,
   onClose,
   onSuccess,
   product = null,
 }) {
-  const { message } = App.useApp();
+  const user = JSON.parse(localStorage.getItem("user"));
+
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
+  const sellingType = Form.useWatch("sellingType", form);
+
   const [fileList, setFileList] = useState([]);
   const [categoriesOptions, setCategoriesOptions] = useState([]);
-    // Store for reusable options
-  const [availableSizes, setAvailableSizes] = useState([]);
-  const [availableColors, setAvailableColors] = useState([]);
-  const [availableTags, setAvailableTags] = useState([]);
+  const [productBenifits, setProductBenifits] = useState([]);
   const [isFormReady, setIsFormReady] = useState(false);
 
   const isEditMode = !!product;
+
+  console.log(open && isEditMode);
 
   // Fetch product details by ID when in edit mode
   const {
@@ -43,85 +45,52 @@ export default function CreateUpdateProductModal({
     isLoading: isProductLoading,
     error: productError,
   } = useProductById(product?._id, { enabled: open && isEditMode });
-  const getBackendMessage = (err) => {
-    const data = err?.response?.data || err?.data;
-    if (data?.message) return data.message;
-    if (data?.error) return data.error;
-    if (Array.isArray(data?.errors) && data.errors.length > 0) {
-      return data.errors.map((item) => item.message).join(', ');
-    }
-    return err?.message;
-  };
-  
+  // Fetch categories
+  useEffect(() => {}, [productDetails]);
+  const { data: categoriesData, isLoading: isCategoriesLoading } =
+    useCategories({ enabled: open });
 
-  // Use React Query hook for categories data
-  const {
-    data: productsOptions,
-    isLoading,
-    error,
-    refetch
-  } = useProductsOptions({ enabled: open });
+  // Create and update mutations with Joi validation
+  const createMutation = useCreateProduct();
+  const updateMutation = useUpdateProduct();
 
-      const {
-        data: categoriesData,
-        isLoading:CategoriesLoading,
-        error:CategoriesError,
-        refetch:refetchCategories
-      } = useCategories({ enabled: open }  );
+  const isLoading = createMutation.isPending || updateMutation.isPending;
 
-      
-      useEffect(()=>{
-        if (categoriesData?.length > 0) {
-
-          setCategoriesOptions(categoriesData?.map(item=>{
-  return {
-    label: item.name,
-    value: item._id
-  }
-}));
-        }
-      },[categoriesData])
-
-    useEffect(()=>{
-       if(productsOptions){
-        setAvailableSizes(productsOptions.sizes || []);
-        setAvailableColors(productsOptions.colors || []);
-        setAvailableTags(productsOptions.tags || []);
-      }
-    },[productsOptions])
-
-  // Initialize form when modal opens or product details are fetched
+  /**
+   * Handle category data
+   */
   useEffect(() => {
+    if (categoriesData?.length > 0) {
+      setCategoriesOptions(
+        categoriesData.map((item) => ({
+          label: item.name,
+          value: item._id,
+        })),
+      );
+    }
+  }, [categoriesData]);
+
+  /**
+   * Initialize form with product details in edit mode
+   */
+  useEffect(() => {
+    console.log({ open, isEditMode, productDetails });
     if (open && isEditMode && productDetails) {
-      // Edit mode - populate form with fetched product data
-      const formValues = {
-        name: productDetails.name,
-        description: productDetails.description,
-        price: productDetails.price,
-        compareAtPrice: productDetails.compareAtPrice,
-        category: productDetails.category?._id || productDetails.category,
-        stock: productDetails.stock,
-        sizes: Array.isArray(productDetails.sizes) ? productDetails.sizes : [],
-        colors: Array.isArray(productDetails.colors) ? productDetails.colors : [],
-        tags: Array.isArray(productDetails.tags) ? productDetails.tags : [],
-        isActive: productDetails.isActive ?? true,
-        isFeatured: productDetails.isFeatured ?? false,
+      const initialValues = {
+        ...productDetails,
+        categories: productDetails.categories.map((item) => item._id),
       };
-            
-      // Only set form values if form is ready
-      if (isFormReady) {
-        form.setFieldsValue(formValues);
-      }
+      form.setFieldsValue(initialValues);
 
       // Convert existing images to file list format
       if (productDetails.images && productDetails.images.length > 0) {
         const existingFiles = productDetails.images.map((img, index) => ({
           uid: `existing-${index}`,
           name: `Image ${index + 1}`,
-          status: 'done',
+          status: "done",
           url: img.url,
           publicId: img.publicId,
-          isExisting: true, // Mark as existing image
+          isExisting: true,
         }));
         setFileList(existingFiles);
       } else {
@@ -134,168 +103,31 @@ export default function CreateUpdateProductModal({
     }
   }, [open, isEditMode, productDetails, form, isFormReady]);
 
-  // Reset when modal closes
+  /**
+   * Reset when modal closes
+   */
   useEffect(() => {
-    if (!open && isFormReady) {
-      form.resetFields();
-      setFileList([]);
-    }
-  }, [open, form, isFormReady]);
-
-  // Set form ready when modal opens
-  useEffect(() => {
-    if (open) {
-      setIsFormReady(true);
-    } else {
+    if (!open) {
       setIsFormReady(false);
+      if (isFormReady) {
+        form.resetFields();
+        setFileList([]);
+      }
+    } else {
+      setIsFormReady(true);
     }
-  }, [open]);
+  }, [open, form]);
 
-  const handleSubmit = async (values) => {
-    try {
-      setLoading(true);
-
-      // Validate that at least one image is present
-      if (fileList.length === 0) {
-        message.error('Please upload at least one product image');
-        setLoading(false);
-        return;
-      }
-
-      // Check if there are new image files to upload
-      const newFiles = fileList.filter(file => file.originFileObj);
-      const hasNewImages = newFiles.length > 0;
-
-      let requestData;
-      let requestHeaders;
-
-      if (hasNewImages) {
-        // Use FormData ONLY if new images are present
-        const formData = new FormData();
-
-        // Append all form fields as primitives
-        formData.append('name', values.name);
-        formData.append('description', values.description);
-        formData.append('price', values.price);
-        formData.append('category', values.category);
-        formData.append('stock', values.stock);
-
-        if (values.compareAtPrice) {
-          formData.append('compareAtPrice', values.compareAtPrice);
-        }
-        
-        // Serialize arrays using JSON.stringify for FormData
-        formData.append('sizes', JSON.stringify(values.sizes || []));
-        formData.append('colors', JSON.stringify(values.colors || []));
-        formData.append('tags', JSON.stringify(values.tags || []));
-        
-        formData.append('isActive', values.isActive ?? true);
-        formData.append('isFeatured', values.isFeatured ?? false);
-
-        // Handle existing images for edit mode
-        if (isEditMode) {
-          const existingImages = fileList
-            .filter(file => file.isExisting && file.publicId)
-            .map(file => ({
-              url: file.url,
-              publicId: file.publicId,
-            }));
-          
-          if (existingImages.length > 0) {
-            // Serialize existingImages as JSON string - backend will parse with JSON.parse
-            formData.append('existingImages', JSON.stringify(existingImages));
-          }
-        }
-
-        // Append new image files
-        newFiles.forEach((file) => {
-          formData.append('images', file.originFileObj);
-        });
-
-        requestData = formData;
-        requestHeaders = undefined;
-      } else {
-        // No new images - send as regular JSON payload
-        requestData = {
-          name: values.name,
-          description: values.description,
-          price: values.price,
-          category: values.category,
-          stock: values.stock,
-          compareAtPrice: values.compareAtPrice,
-          sizes: values.sizes || [],
-          colors: values.colors || [],
-          tags: values.tags || [],
-          isActive: values.isActive ?? true,
-          isFeatured: values.isFeatured ?? false,
-        };
-
-        // Include existing images for edit mode
-        if (isEditMode) {
-          const existingImages = fileList
-            .filter(file => file.isExisting && file.publicId)
-            .map(file => ({
-              url: file.url,
-              publicId: file.publicId,
-            }));
-          
-          if (existingImages.length > 0) {
-            requestData.existingImages = existingImages;
-          }
-        }
-
-        requestHeaders = undefined;
-      }
-
-      // Make API call
-      if (isEditMode) {
-        await apiClient.put(
-          `/api/products/${productDetails?._id || product._id}`,
-          requestData,
-          requestHeaders ? { headers: requestHeaders } : undefined
-        );
-        message.success('Product updated successfully');
-      } else {
-        await apiClient.post(
-          '/api/products',
-          requestData,
-          requestHeaders ? { headers: requestHeaders } : undefined
-        );
-        message.success('Product created successfully');
-      }
-
-      // Reset and close
-      form.resetFields();
-      setFileList([]);
-      onSuccess?.();
-      onClose();
-    } catch (error) {
-      console.error('Product save error:', error);
-      const backendMessage = getBackendMessage(error);
-      if (backendMessage) {
-        message.error(backendMessage);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUploadChange = ({ fileList: newFileList }) => {
-    // Ensure unique keys for each file
-    const uniqueFileList = newFileList.map((file, index) => ({
-      ...file,
-      uid: file.uid || `${Date.now()}-${index}`,
-    }));
-    setFileList(uniqueFileList);
-  };
-
+  /**
+   * Validate file before upload
+   */
   const beforeUpload = (file) => {
     // Validate file type
-    const isImage = file.type.startsWith('image/');
+    const isImage = file.type.startsWith("image/");
     if (!isImage) {
       Modal.error({
-        title: 'Invalid File',
-        content: 'Please select an image file (JPG, PNG, GIF, or WebP only).',
+        title: "Invalid File",
+        content: "Please select an image file (JPG, PNG, GIF, or WebP only).",
       });
       return Upload.LIST_IGNORE;
     }
@@ -306,16 +138,82 @@ export default function CreateUpdateProductModal({
     if (!isLtMaxSize) {
       const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
       Modal.error({
-        title: 'File Too Large',
+        title: "File Too Large",
         content: `Image size is ${fileSizeMB}MB. Please choose an image under 3MB.`,
       });
       return Upload.LIST_IGNORE;
     }
 
-    // Return false to prevent auto upload - we'll handle it manually
-    return false;
+    return false; // Prevent auto upload
   };
 
+  /**
+   * Handle file list changes
+   */
+  const handleUploadChange = ({ fileList: newFileList }) => {
+    const uniqueFileList = newFileList.map((file, index) => ({
+      ...file,
+      uid: file.uid || `${Date.now()}-${index}`,
+    }));
+    setFileList(uniqueFileList);
+  };
+
+  /**
+   * Handle form submission with Joi validation
+   * Joi validation is handled in the mutation functions
+   */
+  const handleSubmit = async (values) => {
+    try {
+      // JSON data
+      const payload = {
+        ...values,
+      };
+
+      const formData = new FormData();
+
+      Object.entries(values).forEach(([key, value]) => {
+        if (value !== null && typeof value === "object") {
+          formData.append(key, JSON.stringify(value));
+        } else {
+          formData.append(key, value);
+        }
+      });
+
+      // Images separately
+      fileList.forEach((file) => {
+        if (file.originFileObj) {
+          formData.append("images", file.originFileObj);
+        }
+      });
+
+      if (user?._id) {
+        formData.append("vendor", user?._id);
+      }
+      if (isEditMode) {
+        await updateMutation.mutateAsync({
+          id: productDetails?._id || product._id,
+          formData,
+        });
+
+        message.success("Product updated successfully");
+      } else {
+        await createMutation.mutateAsync(formData);
+
+        message.success("Product created successfully");
+      }
+
+      form.resetFields();
+      setFileList([]);
+      onSuccess?.();
+      onClose();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  /**
+   * Handle cancel
+   */
   const handleCancel = () => {
     if (isFormReady) {
       form.resetFields();
@@ -326,14 +224,13 @@ export default function CreateUpdateProductModal({
 
   return (
     <Modal
-      title={isEditMode ? 'Edit Product' : 'Create New Product'}
+      title={isEditMode ? "Edit Product" : "Create New Product"}
       open={open}
       onCancel={handleCancel}
       footer={null}
       width="100%"
       style={{ maxWidth: 800, top: 20 }}
-      destroyOnHidden
-    >
+      destroyOnHidden>
       {isEditMode && isProductLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
@@ -349,95 +246,121 @@ export default function CreateUpdateProductModal({
           </div>
         </div>
       ) : (
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-        initialValues={{
-          isActive: true,
-          isFeatured: false,
-          stock: 0,
-          sizes: [],
-          colors: [],
-          tags: [],
-        }}
-      >
-        <Form.Item
-          label="Product Name"
-          name="name"
-          rules={[{ required: true, message: 'Please enter product name' }]}
-        >
-          <Input size="large" placeholder="Enter product name" />
-        </Form.Item>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          initialValues={{
+            isActive: true,
+            isFeatured: false,
+            stock: 0,
+            labels: [],
+            stockUnit: "g",
+            sellingType: "weight",
+            variants: isEditMode
+              ? []
+              : [
+                  {
+                    label: "250gm",
+                    quantity: 250,
+                    price: 0,
+                  },
+                  {
+                    label: "500gm",
+                    quantity: 500,
+                    price: 0,
+                  },
+                  {
+                    label: "1kg",
+                    quantity: 1000,
+                    price: 0,
+                  },
+                ],
 
-        <Form.Item
-          label="Description"
-          name="description"
-          rules={[{ required: true, message: 'Please enter description' }]}
-        >
-          <TextArea rows={4} placeholder="Enter product description" />
-        </Form.Item>
+            healthBenefits: [],
 
-        <Form.Item
-          label="Product Images"
-          extra={
-            isEditMode
-              ? 'Upload new images to replace or add to existing ones (max 5 images, 3MB each)'
-              : 'Upload up to 5 images (max 3MB each). Images will be uploaded to cloud storage.'
-          }
-        >
-          <Upload
-            accept="image/*"
-            listType="picture-card"
-            fileList={fileList}
-            onChange={handleUploadChange}
-            beforeUpload={beforeUpload}
-            onRemove={(file) => {
-              setFileList((prev) => prev.filter((f) => f.uid !== file.uid));
-            }}
-            maxCount={5}
-            multiple
-          >
-            {fileList.length >= 5 ? null : (
-              <div>
-                <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload</div>
-              </div>
-            )}
-          </Upload>
-        </Form.Item>
-
-        <div className="grid grid-cols-2 gap-4">
+            trackInventory: true,
+            isBestSeller: false,
+            healthBenefits: [],
+            storageInstructions: "",
+            isOrganic: false,
+            isSeasonal: false,
+          }}>
+          {/* Product Name */}
           <Form.Item
-            label="Price (₹)"
-            name="price"
-            rules={[{ required: true, message: 'Please enter price' }]}
-          >
-            <InputNumber
+            label="Product Name"
+            name="name"
+            rules={[
+              {
+                required: true,
+                message: "Please enter product name",
+              },
+            ]}>
+            <Input
               size="large"
-              className="w-full"
-              min={0}
-              placeholder="0.00"
+              placeholder="Enter product name (3-100 characters)"
             />
           </Form.Item>
 
-          <Form.Item label="Compare At Price (₹)" name="compareAtPrice">
-            <InputNumber
-              size="large"
-              className="w-full"
-              min={0}
-              placeholder="0.00"
+          {/* Description */}
+          <Form.Item
+            label="Description"
+            name="description"
+            rules={[
+              {
+                required: true,
+                message: "Please enter description",
+              },
+            ]}>
+            <TextArea
+              rows={4}
+              placeholder="Enter product description (10-2000 characters)"
             />
           </Form.Item>
-        </div>
 
-        <div className="grid grid-cols-2 gap-4">
+          {/* Product Images */}
+          <Form.Item
+            label="Product Images"
+            extra={
+              isEditMode
+                ? "Upload new images to replace or add to existing ones (max 5 images, 3MB each)"
+                : "Upload up to 5 images (max 3MB each). Images will be uploaded to cloud storage."
+            }>
+            <Upload
+              accept="image/*"
+              listType="picture-card"
+              fileList={fileList}
+              onChange={handleUploadChange}
+              beforeUpload={beforeUpload}
+              onRemove={(file) => {
+                setFileList((prev) => prev.filter((f) => f.uid !== file.uid));
+              }}
+              maxCount={5}
+              multiple>
+              {fileList.length >= 5 ? null : (
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
+          </Form.Item>
+
+          {/* Category */}
           <Form.Item
             label="Category"
-            name="category"
-            rules={[{ required: true, message: 'Please select category' }]}
-          >
-            <Select size="large" placeholder="Select category">
+            name="categories"
+            rules={[
+              {
+                required: true,
+                message: "Please select category",
+              },
+            ]}>
+            <Select
+              mode="multiple"
+              size="large"
+              placeholder="Select category"
+              loading={isCategoriesLoading}>
               {categoriesOptions.map((cat) => (
                 <Select.Option key={cat.value} value={cat.value}>
                   {cat.label}
@@ -446,126 +369,278 @@ export default function CreateUpdateProductModal({
             </Select>
           </Form.Item>
 
+          <div className="grid grid-cols-2 gap-4">
+            {/* Unit and Quantity */}
+            <Form.Item label="Stock" name="stock">
+              <InputNumber
+                size="large"
+                className="w-full"
+                style={{ width: "100%" }}
+                min={0}
+                placeholder="0"
+              />
+            </Form.Item>
+            <Form.Item label="Stock Unit" name="stockUnit">
+              <Select
+                size="large"
+                options={[
+                  { label: "Gram", value: "g" },
+                  { label: "ML", value: "ml" },
+                  { label: "Piece", value: "piece" },
+                  { label: "Bunch", value: "bunch" },
+                  { label: "Packet", value: "packet" },
+                  { label: "Box", value: "box" },
+                ]}
+              />
+            </Form.Item>
+          </div>
+
+          {/* selling type  */}
           <Form.Item
-            label="Stock"
-            name="stock"
-            rules={[{ required: true, message: 'Please enter stock' }]}
-          >
-            <InputNumber
+            label="Selling Type"
+            name="sellingType"
+            rules={[
+              {
+                required: true,
+                message: "Please select selling type",
+              },
+            ]}>
+            <Select
               size="large"
-              className="w-full"
-              min={0}
-              placeholder="0"
+              options={[
+                { label: "Weight Based", value: "weight" },
+                { label: "Range Product", value: "range" },
+                { label: "Piece Based", value: "piece" },
+              ]}
             />
           </Form.Item>
-        </div>
 
-        <Form.Item
-          label="Sizes"
-          name="sizes"
-          extra="Select from existing sizes or type new ones separated by comma"
-        >
-          <Select
-            mode="tags"
-            size="large"
-            placeholder="Add sizes (e.g., S, M, L, 2/2, 2/4, 2/6)"
-            tokenSeparators={[',']}
-            showSearch
-            allowClear
-            filterOption={(input, option) =>
-              option?.children?.toLowerCase().includes(input.toLowerCase())
-            }
-          >
-            {availableSizes.map((size) => (
-              <Select.Option key={size} value={size}>
-                {size}
-              </Select.Option>
-            ))}
-          </Select>
-        </Form.Item>
+          {/* Product Variants */}
+          {(sellingType === "weight" || sellingType === "piece") && (
+            <div className="border rounded-lg mb-4 p-4">
+              <h3 className="text-lg font-semibold mb-4">Product Variants</h3>
 
-        <Form.Item
-          label="Colors"
-          name="colors"
-          extra="Select from existing colors or type new ones separated by comma"
-        >
-          <Select
-            mode="tags"
-            size="large"
-            placeholder="Add colors (e.g., Red, Blue, Black)"
-            tokenSeparators={[',']}
-            showSearch
-            allowClear
-            filterOption={(input, option) =>
-              option?.children?.toLowerCase().includes(input.toLowerCase())
-            }
-          >
-            {availableColors.map((color) => (
-              <Select.Option key={color} value={color}>
-                {color}
-              </Select.Option>
-            ))}
-          </Select>
-        </Form.Item>
+              {/* Header */}
+              <div className="grid grid-cols-5 gap-3 mb-3 font-medium text-gray-700">
+                <div>Variant Label</div>
+                <div>Quantity</div>
+                <div>Price (₹)</div>
+                <div>compair at Price (₹)</div>
+                <div>Action</div>
+              </div>
 
-        <Form.Item
-          label="Tags"
-          name="tags"
-          extra="Select from existing tags or type new ones separated by comma"
-        >
-          <Select
-            mode="tags"
-            size="large"
-            placeholder="Add tags (e.g., trending, sale, new arrival)"
-            tokenSeparators={[',']}
-            showSearch
-            allowClear
-            filterOption={(input, option) =>
-              option?.children?.toLowerCase().includes(input.toLowerCase())
-            }
-          >
-            {availableTags.map((tag) => (
-              <Select.Option key={tag} value={tag}>
-                {tag}
-              </Select.Option>
-            ))}
-          </Select>
-        </Form.Item>
+              <Form.List name="variants">
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map(({ key, name }) => (
+                      <div
+                        key={key}
+                        className="grid grid-cols-5 gap-3 mb-3 items-start">
+                        <Form.Item
+                          name={[name, "label"]}
+                          rules={[
+                            {
+                              required: true,
+                              message: "Label required",
+                            },
+                          ]}>
+                          <Input placeholder="500g" />
+                        </Form.Item>
 
-        <div className="grid grid-cols-2 gap-4">
+                        <Form.Item
+                          name={[name, "quantity"]}
+                          rules={[
+                            {
+                              required: true,
+                              message: "Quantity required",
+                            },
+                          ]}>
+                          <InputNumber
+                            className="w-full"
+                            placeholder="500"
+                            min={1}
+                          />
+                        </Form.Item>
+
+                        <Form.Item
+                          name={[name, "price"]}
+                          rules={[
+                            {
+                              required: true,
+                              message: "Price required",
+                            },
+                          ]}>
+                          <InputNumber
+                            className="w-full"
+                            placeholder="Price"
+                            min={0}
+                          />
+                        </Form.Item>
+
+                        <Form.Item name={[name, "compareAtPrice"]}>
+                          <InputNumber
+                            className="w-full"
+                            placeholder="Compare at price"
+                            min={0}
+                          />
+                        </Form.Item>
+
+                        <Button danger block onClick={() => remove(name)}>
+                          Delete
+                        </Button>
+                      </div>
+                    ))}
+
+                    <Button
+                      type="dashed"
+                      block
+                      onClick={() =>
+                        add({
+                          label: "",
+                          quantity: 0,
+                          price: 0,
+                        })
+                      }>
+                      + Add Variant
+                    </Button>
+                  </>
+                )}
+              </Form.List>
+            </div>
+          )}
+
+          {/* Product weight range */}
+          {sellingType === "range" && (
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item label="Minimum Weight" name={["approxWeight", "min"]}>
+                <InputNumber className="w-full" min={0} />
+              </Form.Item>
+
+              <Form.Item label="Maximum Weight" name={["approxWeight", "max"]}>
+                <InputNumber className="w-full" min={0} />
+              </Form.Item>
+            </div>
+          )}
+
+          {/* Nutritional Info - Calories and Protein */}
+          {/* <div className="grid grid-cols-2 gap-4">
+            <Form.Item label="Calories (kcal)" name={["nutrition", "calories"]}>
+              <Input size="large" placeholder="e.g., 95" type="number" />
+            </Form.Item>
+
+            <Form.Item label="Protein (g)" name={["nutrition", "protein"]}>
+              <Input size="large" placeholder="e.g., 1.2" type="number" />
+            </Form.Item>
+          </div> */}
+
+          {/* Nutritional Info - Carbs and Fiber */}
+          {/* <div className="grid grid-cols-2 gap-4">
+            <Form.Item
+              label="Carbohydrates (g)"
+              name={["nutrition", "carbohydrates"]}>
+              <Input size="large" placeholder="e.g., 25" type="number" />
+            </Form.Item>
+
+            <Form.Item label="Fiber (g)" name={["nutrition", "fiber"]}>
+              <Input size="large" placeholder="e.g., 2.5" type="number" />
+            </Form.Item>
+          </div> */}
+
+          {/* Fat */}
+          {/* <Form.Item label="Fat (g)" name={["nutrition", "fat"]}>
+            <Input size="large" placeholder="e.g., 0.3" type="number" />
+          </Form.Item> */}
+
+          {/* Product Benefits */}
           <Form.Item
-            label="Active Status"
-            name="isActive"
-            valuePropName="checked"
-          >
-            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-          </Form.Item>
-
-          <Form.Item
-            label="Featured Product"
-            name="isFeatured"
-            valuePropName="checked"
-          >
-            <Switch checkedChildren="Yes" unCheckedChildren="No" />
-          </Form.Item>
-        </div>
-
-        <Form.Item>
-          <div className="flex gap-4 justify-end">
-            <Button onClick={handleCancel} size="large">
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
+            label="Product Benefits"
+            name="healthBenefits"
+            extra="Add one or more product healthBenefits">
+            <Select
+              mode="tags"
               size="large"
-            >
-              {isEditMode ? 'Update Product' : 'Create Product'}
-            </Button>
+              placeholder="Add health Benefits (e.g., Rich in Vitamin C)"
+              tokenSeparators={[","]}
+              showSearch
+              allowClear
+              filterOption={(input, option) =>
+                option?.children?.toLowerCase().includes(input.toLowerCase())
+              }>
+              {productBenifits.map((label) => (
+                <Select.Option key={label} value={label}>
+                  {label}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          {/* storageInstructions */}
+          <Form.Item label="Storage Instructions" name="storageInstructions">
+            <TextArea
+              rows={4}
+              placeholder="Enter product storage instructions "
+            />
+          </Form.Item>
+
+          {/* Organic and Seasonal Flags */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* organic  */}
+            <Form.Item
+              label="Organic Product"
+              name="isOrganic"
+              valuePropName="checked">
+              <Switch checkedChildren="Yes" unCheckedChildren="No" />
+            </Form.Item>
+
+            {/* Seasonal */}
+            <Form.Item
+              label="Seasonal Product"
+              name="isSeasonal"
+              valuePropName="checked">
+              <Switch checkedChildren="Yes" unCheckedChildren="No" />
+            </Form.Item>
+
+            {/* Best Seller */}
+            <Form.Item
+              label="Best Seller"
+              name="isBestSeller"
+              valuePropName="checked">
+              <Switch />
+            </Form.Item>
+
+            {/* Active Status */}
+            <Form.Item
+              label="Active Status"
+              name="isActive"
+              valuePropName="checked">
+              <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+            </Form.Item>
+
+            {/* Featured Product */}
+            <Form.Item
+              label="Featured Product"
+              name="isFeatured"
+              valuePropName="checked">
+              <Switch checkedChildren="Yes" unCheckedChildren="No" />
+            </Form.Item>
           </div>
-        </Form.Item>
-      </Form>
+
+          {/* Form Actions */}
+          <Form.Item>
+            <div className="flex gap-4 justify-end">
+              <Button onClick={handleCancel} size="large">
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={isLoading}
+                size="large">
+                {isEditMode ? "Update Product" : "Create Product"}
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
       )}
     </Modal>
   );

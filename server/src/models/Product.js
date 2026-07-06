@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 /**
  * Product Schema
@@ -8,7 +8,7 @@ const productSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Product name is required'],
+      required: [true, "Product name is required"],
       trim: true,
     },
     slug: {
@@ -18,26 +18,7 @@ const productSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      required: [true, 'Product description is required'],
-    },
-    price: {
-      type: Number,
-      required: [true, 'Product price is required'],
-      min: [0, 'Price cannot be negative'],
-    },
-    compareAtPrice: {
-      type: Number,
-      min: [0, 'Compare price cannot be negative'],
-    },
-    category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Category',
-      required: [true, 'Product category is required'],
-    },
-    vendor: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
+      required: [true, "Product description is required"],
     },
     images: {
       type: [
@@ -51,34 +32,98 @@ const productSchema = new mongoose.Schema(
         },
       ],
       validate: {
-        validator: function(images) {
+        validator: function (images) {
           return images && images.length > 0;
         },
-        message: 'At least one product image is required'
-      }
+        message: "At least one product image is required",
+      },
+    },
+    categories: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Category",
+        },
+      ],
+      validate: {
+        validator: (arr) => arr.length > 0,
+        message: "At least one category is required",
+      },
     },
     stock: {
       type: Number,
       required: true,
-      min: [0, 'Stock cannot be negative'],
+      min: 0,
       default: 0,
     },
-    sku: {
+    stockUnit: {
       type: String,
-      unique: true,
-      sparse: true,
+      enum: ["g", "ml", "piece", "bunch", "packet", "box"],
+      required: true,
     },
-    isActive: {
-      type: Boolean,
-      default: true,
+    sellingType: {
+      type: String,
+      enum: ["weight", "piece", "range"],
+      required: true,
     },
-    isFeatured: {
+    variants: [
+      {
+        label: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+
+        quantity: {
+          type: Number,
+          required: true,
+          min: 1,
+        },
+
+        price: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+
+        compareAtPrice: {
+          type: Number,
+          min: 0,
+        },
+
+        isDefault: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
+    approxWeight: {
+      min: {
+        type: Number,
+        min: 0,
+      },
+      max: {
+        type: Number,
+        min: 0,
+      },
+    },
+    vendor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    isOrganic: {
       type: Boolean,
       default: false,
     },
-    sizes: [String],
-    colors: [String],
-    tags: [String],
+    isSeasonal: {
+      type: Boolean,
+      default: false,
+    },
+    isBestSeller: {
+      type: Boolean,
+      default: false,
+    },
     rating: {
       average: {
         type: Number,
@@ -91,104 +136,98 @@ const productSchema = new mongoose.Schema(
         default: 0,
       },
     },
-    // Sales tracking
     salesCount: {
       type: Number,
       default: 0,
       min: 0,
     },
+    // nutrition: {
+    //   calories: Number,
+    //   protein: Number,
+    //   carbohydrates: Number,
+    //   fat: Number,
+    //   fiber: Number,
+    // },
+    storageInstructions: String,
+    healthBenefits: [String],
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+    trackInventory: {
+      type: Boolean,
+      default: true,
+    },
+    sku: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+
     // SEO fields
     metaTitle: String,
     metaDescription: String,
-    
-    // Grocery-specific fields
-    unit: {
-      type: String,
-      enum: ['kg', 'g', 'piece', 'bunch', 'dozen', 'box', 'packet'],
-      default: 'kg',
-    },
-    isOrganic: {
-      type: Boolean,
-      default: false,
-    },
-    isSeasonalFresh: {
-      type: Boolean,
-      default: false,
-    },
-    isBestSelling: {
-      type: Boolean,
-      default: false,
-    },
-    nutritionalInfo: {
-      calories: String,
-      protein: String,
-      carbohydrates: String,
-      fat: String,
-      fiber: String,
-      vitamins: [String],
-      minerals: [String],
-    },
-    storageInstructions: String,
-    benefits: [String],
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
+productSchema.virtual("featuredImage").get(function () {
+  return this.images?.[0]?.url || null;
+});
+
+productSchema.virtual("startingPrice").get(function () {
+  if (!this.variants?.length) return 0;
+
+  return Math.min(...this.variants.map((variant) => variant.price));
+});
 
 // Indexes for better query performance
 // Note: slug index is created automatically by unique: true
-productSchema.index({ category: 1 });
+productSchema.index({ categories: 1 });
 productSchema.index({ vendor: 1 });
 productSchema.index({ isActive: 1 });
 productSchema.index({ isFeatured: 1 });
-productSchema.index({ price: 1 });
-productSchema.index({ 'rating.average': -1 });
+productSchema.index({ "rating.average": -1 });
 
 // Text index for search
-productSchema.index({ name: 'text', description: 'text', tags: 'text' });
-
-/**
- * Virtual for discount percentage
- */
-productSchema.virtual('discountPercentage').get(function () {
-  if (!this.compareAtPrice || this.compareAtPrice <= this.price) {
-    return 0;
-  }
-  return Math.round(((this.compareAtPrice - this.price) / this.compareAtPrice) * 100);
-});
+productSchema.index({ name: "text", description: "text" });
 
 /**
  * Virtual to check if product is in stock
  */
-productSchema.virtual('inStock').get(function () {
-  return this.stock > 0;
+productSchema.virtual("inStock").get(function () {
+  return this.trackInventory ? this.stock > 0 : true;
 });
 
 /**
  * Generate slug from name before saving
  */
-productSchema.pre('save', async function (next) {
+productSchema.pre("save", async function (next) {
   // Always generate slug if name exists and slug is not manually set
-  if (this.isModified('name') || !this.slug) {
+  if (this.isModified("name") || !this.slug) {
     let slug = this.name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
     // Check for uniqueness
     let unique = false;
     let counter = 0;
     let finalSlug = slug;
-    
+
     while (!unique) {
-      const existing = await this.constructor.findOne({ 
+      const existing = await this.constructor.findOne({
         slug: finalSlug,
-        _id: { $ne: this._id }
+        _id: { $ne: this._id },
       });
-      
+
       if (!existing) {
         unique = true;
       } else {
@@ -196,7 +235,7 @@ productSchema.pre('save', async function (next) {
         finalSlug = `${slug}-${counter}`;
       }
     }
-    
+
     this.slug = finalSlug;
   }
   next();
@@ -206,9 +245,11 @@ productSchema.pre('save', async function (next) {
  * Populate category and vendor on find queries
  */
 productSchema.pre(/^find/, function (next) {
-  this.populate('category', 'name slug')
-      .populate('vendor', 'firstName lastName email');
+  this.populate("categories", "name slug").populate(
+    "vendor",
+    "firstName lastName email",
+  );
   next();
 });
 
-export default mongoose.model('Product', productSchema);
+export default mongoose.model("Product", productSchema);

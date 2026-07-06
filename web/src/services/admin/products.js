@@ -10,7 +10,12 @@ import api from "../api";
  * @param {number} options.page - Page number
  * @param {number} options.limit - Items per page
  */
-export const useAdminProducts = ({ enabled = false, filters = {}, page = 1, limit = 20 }) => {
+export const useAdminProducts = ({
+  enabled = false,
+  filters = {},
+  page = 1,
+  limit = 20,
+}) => {
   return useQuery({
     queryKey: ["admin", "products", page, filters],
     queryFn: async () => {
@@ -19,12 +24,12 @@ export const useAdminProducts = ({ enabled = false, filters = {}, page = 1, limi
         limit,
         ...filters,
       });
-      
+
       const response = await api.get(`/api/products?${params}`);
       return response.data;
     },
     staleTime: DEFAULT_CACHE_TIME,
-    enabled: enabled
+    enabled: enabled,
   });
 };
 
@@ -35,11 +40,11 @@ export const useProductsOptions = ({ enabled = false }) => {
   return useQuery({
     queryKey: ["products", "options"],
     queryFn: async () => {
-      const response = await api.get("/api/products/options/all");      
+      const response = await api.get("/api/products/options/all");
       return response.data.data;
     },
     staleTime: DEFAULT_CACHE_TIME,
-    enabled: enabled
+    enabled: enabled,
   });
 };
 

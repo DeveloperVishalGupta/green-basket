@@ -5,10 +5,12 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 // import './config/env.js';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
 
 dotenv.config();
 
 import connectDatabase from './config/database.js';
+import swaggerSpec from './config/swagger.js';
 import errorHandler from './middleware/errorHandler.js';
 import adminRoutes from './routes/admin.routes.js';
 import authRoutes from './routes/auth.routes.js';
@@ -22,13 +24,26 @@ import shipmentRoutes from "./routes/shipment.routes.js";
 import userRoutes from './routes/user.routes.js';
 import wishlistRoutes from './routes/wishlist.routes.js';
 
-
+const customCss = `
+.swagger-ui .topbar {
+  display: none;
+}
+`;
 
 // Initialize express app
 const app = express();
 
 // Connect to database
 connectDatabase();
+
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customCss
+  })
+);
 
 // Middleware
 app.use(helmet()); // Security headers

@@ -1,6 +1,6 @@
 import express from 'express';
 import notificationController from '../controllers/notificationController.js';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authenticate, isAuthorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -28,6 +28,6 @@ router.delete('/:id', authenticate, notificationController.deleteNotification);
 router.delete('/all', authenticate, notificationController.deleteAllNotifications);
 
 // Create notification (admin only)
-router.post('/', authenticate, authorize('admin'), notificationController.createNotification);
+router.post('/', authenticate, isAuthorize('admin'), notificationController.createNotification);
 
 export default router;
