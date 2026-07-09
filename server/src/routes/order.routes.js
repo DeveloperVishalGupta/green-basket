@@ -1,8 +1,9 @@
-import express from 'express';
-import { body } from 'express-validator';
-import orderController from '../controllers/orderController.js';
-import { authenticate, isAuthorize } from '../middleware/auth.js';
-import { validate } from '../middleware/validate.js';
+import express from "express";
+import { body } from "express-validator";
+import orderController from "../controllers/orderController.js";
+import { authenticate, isAuthorize } from "../middleware/auth.js";
+import { validate, validateSchema } from "../middleware/validate.js";
+import { createOrderSchema } from "../validators/createOrder.schema.js";
 const router = express.Router();
 
 /**
@@ -11,10 +12,10 @@ const router = express.Router();
  * @access  Private (Admin)
  */
 router.get(
-  '/admin/all',
+  "/admin/all",
   authenticate,
-  isAuthorize('admin'),
-  orderController.getAllOrders
+  isAuthorize("admin"),
+  orderController.getAllOrders,
 );
 
 /**
@@ -23,10 +24,10 @@ router.get(
  * @access  Private (Admin)
  */
 router.get(
-  '/all',
+  "/all",
   authenticate,
-  isAuthorize('admin'),
-  orderController.getAllOrders
+  isAuthorize("admin"),
+  orderController.getAllOrders,
 );
 
 /**
@@ -34,14 +35,14 @@ router.get(
  * @desc    Get all orders for current user
  * @access  Private
  */
-router.get('/', authenticate, orderController.getOrders);
+router.get("/", authenticate, orderController.getOrders);
 
 /**
  * @route   GET /api/orders/:id
  * @desc    Get single order by ID
  * @access  Private
  */
-router.get('/:id', authenticate, orderController.getOrderById);
+router.get("/:id", authenticate, orderController.getOrderById);
 
 /**
  * @route   POST /api/orders
@@ -49,28 +50,10 @@ router.get('/:id', authenticate, orderController.getOrderById);
  * @access  Private
  */
 router.post(
-  '/',
+  "/",
   authenticate,
-  [
-    body('items').isArray({ min: 1 }).withMessage('Order must contain at least one item'),
-    body('shippingAddress').notEmpty().withMessage('Shipping address is required'),
-    body('shippingAddress.street')
-      .notEmpty().withMessage('Street is required')
-      .isLength({ max: 185 }).withMessage('Delivery address cannot exceed 185 characters'),
-    body('shippingAddress.city').notEmpty().withMessage('City is required'),
-    body('shippingAddress.state').notEmpty().withMessage('State is required'),
-    body('shippingAddress.zipCode').notEmpty().withMessage('Zip code is required'),
-    body('paymentMethod')
-      .isIn(['card', 'upi', 'netbanking'])
-      .withMessage('Invalid payment method'),
-    body('pricing').notEmpty().withMessage('Pricing information is required'),
-    body('pricing.subtotal').isNumeric().withMessage('Subtotal must be a number'),
-    body('pricing.discount').optional().isNumeric().withMessage('Discount must be a number'),
-    body('pricing.shippingFee').isNumeric().withMessage('Shipping fee must be a number'),
-    body('pricing.total').isNumeric().withMessage('Total must be a number'),
-    validate,
-  ],
-  orderController.createOrder
+  validateSchema(createOrderSchema),
+  orderController.createOrder,
 );
 
 /**
@@ -79,17 +62,25 @@ router.post(
  * @access  Private (Admin only)
  */
 router.put(
-  '/:id/status',
+  "/:id/status",
   authenticate,
-  isAuthorize('admin'),
+  isAuthorize("admin"),
   [
-    body('status')
-      .isIn(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'])
-      .withMessage('Invalid order status'),
-    body('note').optional(),
+    body("status")
+      .isIn([
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "refunded",
+      ])
+      .withMessage("Invalid order status"),
+    body("note").optional(),
     validate,
   ],
-  orderController.updateOrderStatus
+  orderController.updateOrderStatus,
 );
 
 /**
@@ -98,13 +89,10 @@ router.put(
  * @access  Private
  */
 router.post(
-  '/:id/cancel',
+  "/:id/cancel",
   authenticate,
-  [
-    body('reason').optional().trim(),
-    validate,
-  ],
-  orderController.cancelOrder
+  [body("reason").optional().trim(), validate],
+  orderController.cancelOrder,
 );
 
 /**
@@ -113,9 +101,9 @@ router.post(
  * @access  Private
  */
 router.post(
-  '/:id/refund/refresh',
+  "/:id/refund/refresh",
   authenticate,
-  orderController.refreshRefundStatus
+  orderController.refreshRefundStatus,
 );
 
 /**
@@ -124,17 +112,17 @@ router.post(
  * @access  Private (Admin only)
  */
 router.put(
-  '/:id/shipment',
+  "/:id/shipment",
   authenticate,
-  isAuthorize('admin'),
+  isAuthorize("admin"),
   [
-    body('shipmentOrderId').optional(),
-    body('shipmentId').optional(),
-    body('awb').optional(),
-    body('courier').optional(),
+    body("shipmentOrderId").optional(),
+    body("shipmentId").optional(),
+    body("awb").optional(),
+    body("courier").optional(),
     validate,
   ],
-  orderController.updateOrderShipment
+  orderController.updateOrderShipment,
 );
 
 export default router;

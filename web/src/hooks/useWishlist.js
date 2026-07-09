@@ -3,16 +3,16 @@
  * Centralized wishlist operations using React Query
  */
 
-import { wishlistAPI } from '@/lib/api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { wishlistAPI } from "@/lib/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 /**
  * Query keys for wishlist
  */
 export const wishlistKeys = {
-  all: ['wishlist'],
-  lists: () => [...wishlistKeys.all, 'list'],
-  check: (productId) => [...wishlistKeys.all, 'check', productId],
+  all: ["wishlist"],
+  lists: () => [...wishlistKeys.all, "list"],
+  check: (productId) => [...wishlistKeys.all, "check", productId],
 };
 
 /**
@@ -26,6 +26,7 @@ export function useWishlist(options = {}) {
       const response = await wishlistAPI.getAll();
       return response.data;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes — wishlist doesn't change often
     ...options,
   });
 }
@@ -58,7 +59,9 @@ export function useAddToWishlist() {
     onSuccess: (data, productId) => {
       // Invalidate wishlist queries to refetch
       queryClient.invalidateQueries({ queryKey: wishlistKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: wishlistKeys.check(productId) });
+      queryClient.invalidateQueries({
+        queryKey: wishlistKeys.check(productId),
+      });
     },
   });
 }
@@ -74,7 +77,9 @@ export function useRemoveFromWishlist() {
     onSuccess: (data, productId) => {
       // Invalidate wishlist queries to refetch
       queryClient.invalidateQueries({ queryKey: wishlistKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: wishlistKeys.check(productId) });
+      queryClient.invalidateQueries({
+        queryKey: wishlistKeys.check(productId),
+      });
     },
   });
 }

@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from "react";
  * Right: Payment, Summary, Sticky Button
  */
 export default function CheckoutPage() {
+  const paymentMethod = "COD";
   const { message } = App.useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -195,7 +196,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!razorpayLoaded) {
+    if (!razorpayLoaded && paymentMethod !== "COD") {
       message.error("Payment gateway is loading. Please wait...");
       return;
     }
@@ -209,31 +210,20 @@ export default function CheckoutPage() {
         items: items.map((i) => ({
           product: i._id || i.id,
           quantity: i.quantity,
-          size: i.selectedVariant?.label || i.size,
-          color: i.color,
+          variant: i.selectedVariant?.label,
           name: i.name,
         })),
-        shippingAddress: addressObj || { _id: selectedAddress },
-        paymentMethod: "card",
+        shippingAddress: addressObj,
         pricing: {
           subtotal,
           discount,
           shippingFee: deliveryFee,
           total,
         },
-        coupon: appliedCoupon
-          ? {
-              code: appliedCoupon.name,
-              discount: appliedCoupon.discount,
-              freeDelivery:
-                appliedCoupon.freeDelivery || appliedCoupon.name === "NEW10026",
-            }
-          : null,
         deliveryDate: selectedDeliveryDate,
-        deliveryTimeSlot: selectedDeliverySlot,
-        deliveryFee,
-        subtotal,
-        totalAmount: total,
+        deliveryTimeSlot:
+          DELIVERY_SLOTS.find((s) => s.id === selectedDeliverySlot)?.label ||
+          selectedDeliverySlot,
         notes: orderNotes || undefined,
       };
 
@@ -247,6 +237,15 @@ export default function CheckoutPage() {
 
       const createdOrder = res.data.data;
       console.log("✅ Order created:", createdOrder);
+
+      if (paymentMethod === "COD") {
+        // COD: server already cleared cart and sent email; just update local state and redirect
+        clearCart();
+        message.success("Order placed successfully! Pay on delivery.");
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+        router.push(`/orders/${createdOrder._id}`);
+        return;
+      }
 
       await handleRazorpayPayment(createdOrder._id);
     } catch (err) {
@@ -498,7 +497,7 @@ export default function CheckoutPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Delivery Address Section */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between mb-5">
+              {/* <div className="flex items-center justify-between mb-5">
                 <h2 className="text-xl font-bold flex items-center gap-2">
                   <span className="text-2xl">📍</span>
                   Delivery Address
@@ -529,94 +528,135 @@ export default function CheckoutPage() {
                     Manage
                   </Button>
                 </div>
+              </div> */}
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="flex items-center gap-2 text-2xl font-bold">
+                  <span>📍</span>
+                  Delivery Address
+                </h2>
+
+                <div className="flex gap-2">
+                  <Button type="primary" icon={<PlusOutlined />} size="middle">
+                    Add Address
+                  </Button>
+
+                  <Button size="middle">Manage</Button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {user?.addresses.map((address) => {
-                  const isSelected =
-                    selectedAddress === (address.id || address._id);
+              <div className="grid gap-3">
+                {user?.addresses
+                  ?.filter((item) => item.isDefault)
+                  ?.map((address) => {
+                    const isSelected =
+                      selectedAddress === (address.id || address._id);
 
-                  return (
-                    <div
-                      key={address.id || address._id}
-                      onClick={() =>
-                        setSelectedAddress(address.id || address._id)
-                      }
-                      className={`cursor-pointer border-2 rounded-xl p-4 transition-all duration-200 ${
-                        isSelected
-                          ? "border-green-500 bg-gradient-to-r from-green-50 to-emerald-50 shadow-md"
-                          : "border-gray-200 hover:border-green-300 hover:shadow-sm"
-                      }`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between gap-2 mb-2">
-                            <p className="text-sm text-gray-700 mb-1">
-                              <span className="font-medium capitalize">
-                                {address.fullName}
-                              </span>
-                              <span className="text-gray-600">
-                                {" "}
-                                • {address.phone}
-                              </span>
-                            </p>
-                            <span className="font-semibold text-gray-900">
-                              {address.label}
-                            </span>
+                    return (
+                      <div
+                        key={address.id || address._id}
+                        onClick={() =>
+                          setSelectedAddress(address.id || address._id)
+                        }
+                        className={`group cursor-pointer rounded-2xl border transition-all duration-200
+          ${
+            isSelected
+              ? "border-emerald-500 bg-emerald-50 shadow-sm"
+              : "border-gray-200 hover:border-emerald-400 hover:bg-gray-50"
+          }`}>
+                        <div className="flex items-center gap-3 p-3">
+                          {/* Icon */}
+                          <div className="hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                            <span className="text-xl">🏠</span>
                           </div>
 
-                          <p className="text-sm text-gray-600 mb-1">
-                            {address.street}
-                          </p>
+                          {/* Content */}
+                          <div className="min-w-0 flex-1">
+                            {/* Name + Phone */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="font-semibold text-gray-900">
+                                {address.fullName}
+                              </h3>
 
-                          {/* {address.area && (
-                            <p className="text-sm text-gray-600">
-                              {address.area}
+                              <span className="text-gray-400 hidden sm:inline">
+                                •
+                              </span>
+
+                              <span className="text-gray-600 text-sm">
+                                {address.phone}
+                              </span>
+                            </div>
+
+                            {/* Address */}
+                            <p className="mt-1 text-sm text-gray-600 line-clamp-2">
+                              {address.street},{" "}
+                              {address.area ? `${address.area}, ` : ""}
+                              {address.city}, {address.state} -{" "}
+                              {address.zipCode}
                             </p>
-                          )} */}
 
-                          <p className="text-sm text-gray-600">
-                            {address?.area || ""}, {address.city},{" "}
-                            {address.state} - {address.zipCode}
-                          </p>
+                            {/* Bottom */}
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              {address.isDefault && (
+                                <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                  Default
+                                </span>
+                              )}
 
-                          {address.landmark && (
-                            <Tag className="mt-2 text-xs">
-                              Landmark: {address.landmark}
-                            </Tag>
-                          )}
+                              {address.landmark && (
+                                <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                                  Landmark: {address.landmark}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Right Side */}
+                          <div className="flex items-center gap-3">
+                            <span className="hidden sm:inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
+                              🏠 {address.label || "Home"}
+                            </span>
+
+                            <svg
+                              className="h-5 w-5 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M9 18l6-6-6-6"
+                              />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
 
-                      {!address.isDefault ? (
-                        <Button
-                          size="small"
-                          type="link"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            try {
-                              await setDefaultAddress.mutateAsync(
-                                address.id || address._id,
-                              );
-                              message.success("Set as default address");
-                            } catch (err) {
-                              message.error(
-                                err?.message || "Failed to set default",
-                              );
-                            }
-                          }}
-                          className="pl-0 text-emerald-600 mt-2">
-                          Make Default
-                        </Button>
-                      ) : (
-                        address.isDefault && (
-                          <Tag color="green" className="text-xs font-semibold">
-                            Default
-                          </Tag>
-                        )
-                      )}
-                    </div>
-                  );
-                })}
+                        {!address.isDefault && (
+                          <div className="px-3 pb-3">
+                            <Button
+                              type="link"
+                              size="small"
+                              className="p-0 text-emerald-600"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  await setDefaultAddress.mutateAsync(
+                                    address.id || address._id,
+                                  );
+                                  message.success("Set as default");
+                                } catch (err) {
+                                  message.error(
+                                    err?.message || "Failed to set default",
+                                  );
+                                }
+                              }}>
+                              Make Default
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             </div>
 
@@ -696,7 +736,9 @@ export default function CheckoutPage() {
                 <p className="text-sm font-semibold text-gray-700 mb-3">
                   Select Delivery Date
                 </p>
-                <div className="grid grid-cols-5 gap-2">
+
+                {/* Mobile: Horizontal Scroll | Desktop: Grid */}
+                <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-5 md:gap-2 md:overflow-visible">
                   {dateOptions.map((opt) => (
                     <button
                       key={opt.id}
@@ -704,15 +746,16 @@ export default function CheckoutPage() {
                         setSelectedDeliveryDate(opt.id);
                         setSelectedDeliverySlot(null);
                       }}
-                      className={`rounded-lg p-3 border-2 transition-all text-center font-medium ${
+                      className={`flex-shrink-0 snap-start min-w-[110px] md:min-w-0 rounded-xl border-2 p-3 transition-all text-center font-medium ${
                         selectedDeliveryDate === opt.id
                           ? "border-green-600 bg-green-50 text-green-700 shadow-md"
                           : "border-gray-200 hover:border-green-300 text-gray-700"
                       }`}>
-                      <div className="text-sm font-bold leading-tight">
-                        {opt.label}
+                      <div className="text-sm font-bold">{opt.label}</div>
+
+                      <div className="text-xs text-gray-500 mt-1">
+                        {opt.sub}
                       </div>
-                      <div className="text-xs opacity-70 mt-1">{opt.sub}</div>
                     </button>
                   ))}
                 </div>
@@ -739,7 +782,7 @@ export default function CheckoutPage() {
                           <p className="text-xs font-semibold text-gray-600 mb-2 flex items-center gap-2">
                             <span>🌅</span> Morning (8:00 AM - 10:00 AM)
                           </p>
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                             {availableSlots
                               .filter((s) => s.window === "morning")
                               .map((slot) => (
@@ -748,14 +791,12 @@ export default function CheckoutPage() {
                                   onClick={() =>
                                     setSelectedDeliverySlot(slot.id)
                                   }
-                                  className={`rounded-lg p-3 border-2 transition-all text-center font-medium ${
+                                  className={`rounded-lg border-2 p-3 transition-all font-medium ${
                                     selectedDeliverySlot === slot.id
-                                      ? "border-green-600 bg-green-50 text-green-700 shadow-md"
-                                      : "border-gray-200 hover:border-green-300 text-gray-700 hover:bg-gray-50"
+                                      ? "border-green-600 bg-green-50 text-green-700 shadow-sm"
+                                      : "border-gray-200 hover:border-green-300 hover:bg-gray-50"
                                   }`}>
-                                  <p className="text-sm font-semibold">
-                                    {slot.label}
-                                  </p>
+                                  <p className="text-sm">{slot.label}</p>
                                 </button>
                               ))}
                           </div>
@@ -768,7 +809,7 @@ export default function CheckoutPage() {
                           <p className="text-xs font-semibold text-gray-600 mb-2 flex items-center gap-2">
                             <span>🌙</span> Evening (7:00 PM - 10:00 PM)
                           </p>
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                             {availableSlots
                               .filter((s) => s.window === "evening")
                               .map((slot) => (
@@ -800,7 +841,7 @@ export default function CheckoutPage() {
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
               <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
                 <span className="text-xl">📝</span>
-                Delivery Instructions (Optional)
+                Delivery Instructions (Opt)
               </h2>
               <Input.TextArea
                 placeholder="e.g., 'Leave at gate', 'Call before delivery', 'Ring the bell twice'"
@@ -820,68 +861,109 @@ export default function CheckoutPage() {
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-6">
               {/* Premium Payment Section */}
-              <div className="bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 shadow-lg border-2 border-indigo-200">
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-900">
-                      Payment Method
-                    </h3>
-                    <Tag color="blue" className="font-semibold">
-                      Online Only
-                    </Tag>
-                  </div>
+              {paymentMethod !== "COD" ? (
+                <div className="bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 shadow-lg border-2 border-indigo-200">
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">
+                        Payment Method
+                      </h3>
+                      <Tag color="blue" className="font-semibold">
+                        Online Only
+                      </Tag>
+                    </div>
 
-                  {/* Razorpay Branding */}
-                  <div className="bg-white rounded-lg p-3 mb-4">
-                    <div className="flex items-center gap-2 justify-center">
-                      {/* <ShieldOutlined className="text-lg text-blue-600" /> */}
-                      <p className="text-sm font-semibold text-gray-800">
-                        Powered by{" "}
-                        <span className="text-blue-600">Razorpay</span>
-                      </p>
+                    {/* Razorpay Branding */}
+                    <div className="bg-white rounded-lg p-3 mb-4">
+                      <div className="flex items-center gap-2 justify-center">
+                        {/* <ShieldOutlined className="text-lg text-blue-600" /> */}
+                        <p className="text-sm font-semibold text-gray-800">
+                          Powered by{" "}
+                          <span className="text-blue-600">Razorpay</span>
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Payment Methods Grid */}
-                  <div className="grid grid-cols-2 gap-2 mb-4">
-                    <div className="bg-white rounded-lg p-3 text-center hover:shadow-md transition-shadow">
-                      <p className="text-2xl mb-1">💳</p>
-                      <p className="text-xs font-medium text-gray-700">
-                        Credit/Debit Cards
-                      </p>
+                    {/* Payment Methods Grid */}
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      <div className="bg-white rounded-lg p-3 text-center hover:shadow-md transition-shadow">
+                        <p className="text-2xl mb-1">💳</p>
+                        <p className="text-xs font-medium text-gray-700">
+                          Credit/Debit Cards
+                        </p>
+                      </div>
+                      <div className="bg-white rounded-lg p-3 text-center hover:shadow-md transition-shadow">
+                        <p className="text-2xl mb-1">📱</p>
+                        <p className="text-xs font-medium text-gray-700">UPI</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-3 text-center hover:shadow-md transition-shadow">
+                        <p className="text-2xl mb-1">💰</p>
+                        <p className="text-xs font-medium text-gray-700">
+                          Wallets
+                        </p>
+                      </div>
+                      <div className="bg-white rounded-lg p-3 text-center hover:shadow-md transition-shadow">
+                        <p className="text-2xl mb-1">🏦</p>
+                        <p className="text-xs font-medium text-gray-700">
+                          Net Banking
+                        </p>
+                      </div>
                     </div>
-                    <div className="bg-white rounded-lg p-3 text-center hover:shadow-md transition-shadow">
-                      <p className="text-2xl mb-1">📱</p>
-                      <p className="text-xs font-medium text-gray-700">UPI</p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 text-center hover:shadow-md transition-shadow">
-                      <p className="text-2xl mb-1">💰</p>
-                      <p className="text-xs font-medium text-gray-700">
-                        Wallets
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 text-center hover:shadow-md transition-shadow">
-                      <p className="text-2xl mb-1">🏦</p>
-                      <p className="text-xs font-medium text-gray-700">
-                        Net Banking
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* Trust Message */}
-                  <div className="bg-white rounded-lg p-3 flex items-start gap-2">
-                    <LockOutlined className="text-green-600 mt-1 shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-800">
-                        Secure & Encrypted
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        100% safe transactions with SSL encryption
-                      </p>
+                    {/* Trust Message */}
+                    <div className="bg-white rounded-lg p-3 flex items-start gap-2">
+                      <LockOutlined className="text-green-600 mt-1 shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold text-gray-800">
+                          Secure & Encrypted
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          100% safe transactions with SSL encryption
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-lime-50 rounded-2xl border border-green-200 p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-lg font-bold text-gray-900">
+                      Payment Method
+                    </h3>
+
+                    <Tag color="green" className="font-semibold">
+                      Cash on Delivery
+                    </Tag>
+                  </div>
+
+                  {/* COD Card */}
+                  <div className="rounded-xl border border-green-200 bg-white p-4">
+                    <div className="flex items-start gap-4">
+                      {/* <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-2xl">
+                        💵
+                      </div> */}
+
+                      <div className="flex-1">
+                        {/* <h4 className="font-semibold text-gray-900">
+                          <span className="text-xl">💵</span>
+                          Pay at Delivery
+                        </h4> */}
+                        <h4 className="text-base font-semibold mb-3 flex items-center gap-2">
+                          <span className="text-xl">💵</span>
+                          Pay at Delivery
+                        </h4>
+
+                        <p className="mt-1 text-sm text-gray-600">
+                          No advance payment required. Pay by{" "}
+                          <strong>Cash</strong> or
+                          <strong> UPI</strong> when your order is delivered to
+                          your doorstep.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Order Summary Section */}
               <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-100">
@@ -949,21 +1031,25 @@ export default function CheckoutPage() {
                   onClick={handlePlaceOrder}
                   disabled={
                     isProcessing ||
-                    !razorpayLoaded ||
                     !selectedAddress ||
                     !selectedDeliveryDate ||
-                    !selectedDeliverySlot
+                    !selectedDeliverySlot ||
+                    (paymentMethod !== "COD" && !razorpayLoaded)
                   }
                   className="h-12 text-base font-semibold rounded-lg"
                   style={{
                     background: isProcessing ? "#ccc" : "#0F8A5F",
                     borderColor: "#0F8A5F",
                   }}>
-                  {!razorpayLoaded
-                    ? "⏳ Loading Payment Gateway..."
-                    : isProcessing
-                      ? "⏳ Processing Payment..."
-                      : `💳 Pay Now • ₹${total}`}
+                  {paymentMethod === "COD"
+                    ? isProcessing
+                      ? "⏳ Placing Order..."
+                      : `🛒 Place Order • ₹${total}`
+                    : !razorpayLoaded
+                      ? "⏳ Loading Payment Gateway..."
+                      : isProcessing
+                        ? "⏳ Processing Payment..."
+                        : `💳 Pay Now • ₹${total}`}
                 </Button>
 
                 {!selectedAddress && (
@@ -984,14 +1070,16 @@ export default function CheckoutPage() {
               </div>
 
               {/* Security Badge */}
-              <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-200">
-                <p className="text-xs text-gray-600 mb-2">
-                  🔐 Your payment is protected by
-                </p>
-                <p className="text-sm font-bold text-gray-900">
-                  Razorpay Security
-                </p>
-              </div>
+              {paymentMethod !== "COD" && (
+                <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-200">
+                  <p className="text-xs text-gray-600 mb-2">
+                    🔐 Your payment is protected by
+                  </p>
+                  <p className="text-sm font-bold text-gray-900">
+                    Razorpay Security
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

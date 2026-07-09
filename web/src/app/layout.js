@@ -1,6 +1,7 @@
-import { QueryProvider } from '@/components/providers/QueryProvider';
-import { AntdRegistry } from '@ant-design/nextjs-registry';
-import { App, ConfigProvider } from 'antd';
+import { AuthProvider } from "@/components/providers/AuthProvider";
+import { QueryProvider } from "@/components/providers/QueryProvider";
+import { AntdRegistry } from "@ant-design/nextjs-registry";
+import { App, ConfigProvider } from "antd";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,15 +16,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Apna Bazaar - Fresh Vegetables & Fruits Delivered Daily | Best Prices",
-  description: "Shop fresh, organic vegetables and fruits delivered daily from farms. Best prices, quality guaranteed, same-day delivery available. 100% fresh produce or money back!",
-  keywords: "fresh vegetables online, fruits delivery, organic produce, online grocery shopping, farm fresh, same-day delivery, India",
+  title:
+    "Apna Bazaar - Fresh Vegetables & Fruits Delivered Daily | Best Prices",
+  description:
+    "Shop fresh, organic vegetables and fruits delivered daily from farms. Best prices, quality guaranteed, same-day delivery available. 100% fresh produce or money back!",
+  keywords:
+    "fresh vegetables online, fruits delivery, organic produce, online grocery shopping, farm fresh, same-day delivery, India",
   authors: [{ name: "Apna Bazaar Team" }],
   creator: "Apna Bazaar",
   publisher: "Apna Bazaar",
   openGraph: {
     title: "Apna Bazaar - Fresh Vegetables & Fruits Delivered Daily",
-    description: "Buy fresh vegetables and fruits online with same-day delivery. 100% farm fresh produce guaranteed!",
+    description:
+      "Buy fresh vegetables and fruits online with same-day delivery. 100% farm fresh produce guaranteed!",
     type: "website",
     url: process.env.NEXT_PUBLIC_APP_URL || "https://apnabazaar.com",
     siteName: "Apna Bazaar",
@@ -40,9 +45,12 @@ export const metadata = {
     card: "summary_large_image",
     title: "Apna Bazaar - Fresh Vegetables & Fruits",
     description: "Fresh produce delivered to your doorstep daily",
-    images: [`${process.env.NEXT_PUBLIC_APP_URL || "https://apnabazaar.com"}/twitter-image.jpg`],
+    images: [
+      `${process.env.NEXT_PUBLIC_APP_URL || "https://apnabazaar.com"}/twitter-image.jpg`,
+    ],
   },
-  robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+  robots:
+    "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
   viewport: "width=device-width, initial-scale=1, maximum-scale=5",
   alternates: {
     canonical: process.env.NEXT_PUBLIC_APP_URL || "https://apnabazaar.com",
@@ -52,30 +60,27 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head>
-      </head>
+      <head></head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <QueryProvider>
-          <AntdRegistry>
-            <ConfigProvider
-              theme={{
-                token: {
-                  colorPrimary: '#16A34A',  // Fresh green primary color
-                  colorSuccess: '#22C55E',   // Light green for success
-                  colorWarning: '#FACC15',   // Yellow accent
-                  colorInfo: '#16A34A',
-                  borderRadius: 8,
-                  fontFamily: 'var(--font-geist-sans)',
-                },
-              }}
-            >
-              <App>
-                {children}
-              </App>
-            </ConfigProvider>
-          </AntdRegistry>
+          <AuthProvider>
+            <AntdRegistry>
+              <ConfigProvider
+                theme={{
+                  token: {
+                    colorPrimary: "#16A34A", // Fresh green primary color
+                    colorSuccess: "#22C55E", // Light green for success
+                    colorWarning: "#FACC15", // Yellow accent
+                    colorInfo: "#16A34A",
+                    borderRadius: 8,
+                    fontFamily: "var(--font-geist-sans)",
+                  },
+                }}>
+                <App>{children}</App>
+              </ConfigProvider>
+            </AntdRegistry>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>

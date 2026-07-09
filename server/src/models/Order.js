@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 /**
  * Order Schema
@@ -12,14 +12,14 @@ const orderSchema = new mongoose.Schema(
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     items: [
       {
         product: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: 'Product',
+          ref: "Product",
           required: true,
         },
         name: {
@@ -50,7 +50,7 @@ const orderSchema = new mongoose.Schema(
       street: {
         type: String,
         required: true,
-        maxlength: [185, 'Delivery address cannot exceed 185 characters'],
+        maxlength: [185, "Delivery address cannot exceed 185 characters"],
       },
       city: {
         type: String,
@@ -67,20 +67,20 @@ const orderSchema = new mongoose.Schema(
       country: {
         type: String,
         required: true,
-        default: 'India',
+        default: "India",
       },
       phone: String,
     },
     payment: {
       method: {
         type: String,
-        enum: ['cod', 'card', 'upi', 'netbanking'],
+        enum: ["cod", "card", "upi", "netbanking"],
         required: true,
       },
       status: {
         type: String,
-        enum: ['pending', 'completed', 'failed', 'refunded'],
-        default: 'pending',
+        enum: ["pending", "completed", "failed", "refunded"],
+        default: "pending",
       },
       transactionId: String,
       paidAt: Date,
@@ -133,15 +133,15 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: [
-        'pending',
-        'confirmed',
-        'processing',
-        'shipped',
-        'delivered',
-        'cancelled',
-        'refunded',
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "refunded",
       ],
-      default: 'pending',
+      default: "pending",
     },
     statusHistory: [
       {
@@ -160,19 +160,18 @@ const orderSchema = new mongoose.Schema(
     cancellationReason: String,
     cancelledBy: {
       type: String,
-      enum: ['customer', 'admin'],
+      enum: ["customer", "admin"],
     },
     notes: String,
     deliveryDate: Date,
     deliveryTimeSlot: {
       type: String,
-      enum: ['morning', 'afternoon', 'evening', 'night'],
     },
-    
+
     // Razorpay payment integration
     razorpayOrderId: String,
     razorpayPaymentId: String,
-    
+
     // Shiprocket integration fields
     shiprocketOrderId: String,
     shiprocketShipmentId: Number,
@@ -181,7 +180,7 @@ const orderSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes for better query performance
@@ -193,29 +192,29 @@ orderSchema.index({ createdAt: -1 });
 /**
  * Generate unique order number
  */
-orderSchema.pre('save', async function (next) {
+orderSchema.pre("save", async function (next) {
   if (!this.isNew) return next();
-  
+
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+
   let unique = false;
   let counter = 1;
   let orderNumber;
-  
+
   while (!unique) {
-    orderNumber = `ORD${year}${month}${day}${counter.toString().padStart(4, '0')}`;
+    orderNumber = `ORD${year}${month}${day}${counter.toString().padStart(4, "0")}`;
     const existing = await this.constructor.findOne({ orderNumber });
-    
+
     if (!existing) {
       unique = true;
     } else {
       counter++;
     }
   }
-  
+
   this.orderNumber = orderNumber;
   next();
 });
@@ -225,22 +224,22 @@ orderSchema.pre('save', async function (next) {
  * @param {string} newStatus - New status
  * @param {string} note - Optional note
  */
-orderSchema.methods.updateStatus = function (newStatus, note = '') {
+orderSchema.methods.updateStatus = function (newStatus, note = "") {
   this.status = newStatus;
-  
+
   this.statusHistory.push({
     status: newStatus,
     note,
     updatedAt: new Date(),
   });
-  
+
   // Update specific timestamps based on status
-  if (newStatus === 'delivered') {
+  if (newStatus === "delivered") {
     this.deliveredAt = new Date();
-  } else if (newStatus === 'cancelled') {
+  } else if (newStatus === "cancelled") {
     this.cancelledAt = new Date();
   }
-  
+
   return this.save();
 };
 
@@ -248,9 +247,11 @@ orderSchema.methods.updateStatus = function (newStatus, note = '') {
  * Populate user and product details
  */
 orderSchema.pre(/^find/, function (next) {
-  this.populate('user', 'firstName lastName email phone')
-      .populate('items.product', 'name slug images price');
+  this.populate("user", "firstName lastName email phone").populate(
+    "items.product",
+    "name slug images price",
+  );
   next();
 });
 
-export default mongoose.model('Order', orderSchema);
+export default mongoose.model("Order", orderSchema);

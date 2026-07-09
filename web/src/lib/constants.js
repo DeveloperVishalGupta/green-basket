@@ -129,35 +129,35 @@ export const PRICE_RANGES = [
  */
 export const DELIVERY_SLOTS = [
   {
-    id: "8-9",
+    id: "1",
     label: "8:00 - 9:00 AM",
     icon: "🌅",
     window: "morning",
     startHour: 8,
   },
   {
-    id: "9-10",
+    id: "2",
     label: "9:00 - 10:00 AM",
     icon: "🌅",
     window: "morning",
     startHour: 9,
   },
   {
-    id: "7-8",
+    id: "3",
     label: "7:00 - 8:00 PM",
     icon: "🌙",
     window: "evening",
     startHour: 19,
   },
   {
-    id: "8-9pm",
+    id: "4",
     label: "8:00 - 9:00 PM",
     icon: "🌙",
     window: "evening",
     startHour: 20,
   },
   {
-    id: "9-10pm",
+    id: "5",
     label: "9:00 - 10:00 PM",
     icon: "🌙",
     window: "evening",

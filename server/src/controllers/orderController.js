@@ -1,13 +1,16 @@
-import { sendOrderConfirmationEmail, sendOrderShippedEmail } from '../config/email.js';
-import { createRefund, fetchRefund } from '../config/razorpay.js';
-import shipRocketService from '../config/ship-rocket-config.js';
+import {
+  sendOrderConfirmationEmail,
+  sendOrderShippedEmail,
+} from "../config/email.js";
+import { createRefund, fetchRefund } from "../config/razorpay.js";
+import shipRocketService from "../config/ship-rocket-config.js";
 // import shipRocketService from '../config/shipRocket.js';
-import Cart from '../models/Cart.js';
-import Notification from '../models/Notification.js';
-import Order from '../models/Order.js';
-import Product from '../models/Product.js';
-import User from '../models/User.js';
-import { cancelShiprocketShipment } from './shipmentController.js';
+import Cart from "../models/Cart.js";
+import Notification from "../models/Notification.js";
+import Order from "../models/Order.js";
+import Product from "../models/Product.js";
+import User from "../models/User.js";
+import { cancelShiprocketShipment } from "./shipmentController.js";
 
 /**
  * Order Controller
@@ -21,21 +24,17 @@ class OrderController {
    */
   async getOrders(req, res) {
     try {
-      const {
-        page = 1,
-        limit = 10,
-        status,
-        sort = '-createdAt',
-      } = req.query;
+      const { page = 1, limit = 10, status, sort = "-createdAt" } = req.query;
 
-      const query = { 
+      const query = {
         user: req.user._id,
-        // Exclude pending orders without completed payment
-        // Only show orders where payment is completed OR order is not pending
+        // Hide only abandoned online-payment orders (pending + not paid + not COD)
+        // COD orders and any confirmed/processing/shipped/delivered/cancelled orders are always shown
         $or: [
-          { 'payment.status': 'completed' }, // Paid orders
-          { status: { $ne: 'pending' } } // Non-pending orders (confirmed by admin)
-        ]
+          { "payment.method": "cod" }, // COD orders always visible
+          { "payment.status": "completed" }, // Paid online orders
+          { status: { $ne: "pending" } }, // Any non-pending order
+        ],
       };
 
       if (status) {
@@ -44,10 +43,7 @@ class OrderController {
 
       const skip = (page - 1) * limit;
       const [orders, total] = await Promise.all([
-        Order.find(query)
-          .sort(sort)
-          .skip(skip)
-          .limit(Number(limit)),
+        Order.find(query).sort(sort).skip(skip).limit(Number(limit)),
         Order.countDocuments(query),
       ]);
 
@@ -62,10 +58,10 @@ class OrderController {
         },
       });
     } catch (error) {
-      console.error('Get orders error:', error);
+      console.error("Get orders error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch orders',
+        message: "Failed to fetch orders",
         error: error.message,
       });
     }
@@ -80,20 +76,24 @@ class OrderController {
     try {
       const { id } = req.params;
 
-      const order = await Order.findById(id);
+      const order = await Order.findById(id).populate(
+        "user",
+        "firstName lastName email phone",
+      );
 
       if (!order) {
         return res.status(404).json({
           success: false,
-          message: 'Order not found',
+          message: "Order not found",
         });
       }
 
       // Check if user owns this order or is admin/vendor
       // Handle both populated user object and ObjectId
-      const orderUserId = typeof order.user === 'object' && order.user._id 
-        ? order.user._id.toString() 
-        : order.user.toString();
+      const orderUserId =
+        typeof order.user === "object" && order.user._id
+          ? order.user._id.toString()
+          : order.user.toString();
       const currentUserId = req.user._id.toString();
       const userRole = req.user.role;
 
@@ -102,13 +102,13 @@ class OrderController {
       // 2. User is an admin
       // 3. User is a vendor (for their sold products)
       const isOwner = orderUserId === currentUserId;
-      const isAdmin = userRole === 'admin';
-      const isVendor = userRole === 'vendor';
+      const isAdmin = userRole === "admin";
+      const isVendor = userRole === "vendor";
 
       if (!isOwner && !isAdmin && !isVendor) {
         return res.status(403).json({
           success: false,
-          message: 'Not authorized to view this order',
+          message: "Not authorized to view this order",
         });
       }
       res.json({
@@ -116,10 +116,10 @@ class OrderController {
         data: order,
       });
     } catch (error) {
-      console.error('Get order error:', error);
+      console.error("Get order error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch order',
+        message: "Failed to fetch order",
         error: error.message,
       });
     }
@@ -135,29 +135,31 @@ class OrderController {
       const {
         items,
         shippingAddress,
-        paymentMethod,
+        // paymentMethod,
         pricing: frontendPricing,
         coupon,
         notes,
         deliveryDate,
         deliveryTimeSlot,
       } = req.body;
-
+      const paymentMethod = "cod";
       // Validate items
       if (!items || items.length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'Order must contain at least one item',
+          message: "Order must contain at least one item",
         });
       }
 
       // Only allow prepaid/online payment (reject COD)
-      if (paymentMethod && paymentMethod.toLowerCase() === 'cod') {
-        return res.status(400).json({
-          success: false,
-          message: 'Cash on Delivery is not supported. Please use online payment.',
-        });
-      }
+      // if (paymentMethod && paymentMethod.toLowerCase() === "cod") {
+      //   return res.status(400).json({
+      //     success: false,
+      //     message:
+      //       "Cash on Delivery is not supported. Please use online payment.",
+      //   });
+      // }
+      // const paymentMethod = "cod";
 
       const processedItems = [];
       let calculatedSubtotal = 0;
@@ -172,25 +174,39 @@ class OrderController {
           });
         }
 
-        if (product.stock < item.quantity) {
+        const variant = product.variants.find(
+          (v) =>
+            v.label?.trim().toLowerCase() ===
+            item.variant?.trim().toLowerCase(),
+        );
+        if (!variant) {
+          return res.status(400).json({
+            success: false,
+            message: `${product.name}: Invalid variant selected`,
+          });
+        }
+
+        if (product.trackInventory && product.stock < item.quantity) {
           return res.status(400).json({
             success: false,
             message: `${product.name}: Only ${product.stock} items available`,
           });
         }
 
-        const itemSubtotal = product.price * item.quantity;
+        const itemPrice = variant.price;
+        const itemSubtotal = itemPrice * item.quantity;
+
         calculatedSubtotal += itemSubtotal;
 
         processedItems.push({
           product: product._id,
           name: product.name,
           slug: product.slug,
-          image: product.images[0]?.url || '',
+          image: product.images?.[0]?.url || "",
           quantity: item.quantity,
-          size: item.size,
-          color: item.color,
-          price: product.price,
+
+          variant: variant.label, // ✅ changed
+          price: itemPrice, // ✅ changed
           subtotal: itemSubtotal,
         });
 
@@ -201,7 +217,7 @@ class OrderController {
       let discount = 0;
       let deliveryFee = calculatedSubtotal > 199 ? 0 : 25;
       let couponData = null;
-      
+
       // Coupon logic commented out (not in use)
       /* 
       // Apply coupon discount if provided
@@ -244,25 +260,37 @@ class OrderController {
       */
 
       // Calculate final total (never negative)
-      const calculatedTotal = Math.max(0, calculatedSubtotal - discount + deliveryFee);
+      const calculatedTotal = Math.max(
+        0,
+        calculatedSubtotal - discount + deliveryFee,
+      );
 
       // Validate frontend pricing matches backend calculation (with tolerance for rounding)
-      if (frontendPricing) {        
+      if (frontendPricing) {
         // Allow 1 rupee tolerance for rounding differences
-        const subtotalDiff = Math.abs(frontendPricing.subtotal - calculatedSubtotal);
-        const discountDiff = Math.abs((frontendPricing.discount || 0) - discount);
-        const shippingDiff = Math.abs(frontendPricing.shippingFee - deliveryFee);
+        const subtotalDiff = Math.abs(
+          frontendPricing.subtotal - calculatedSubtotal,
+        );
+        const discountDiff = Math.abs(
+          (frontendPricing.discount || 0) - discount,
+        );
+        const shippingDiff = Math.abs(
+          frontendPricing.shippingFee - deliveryFee,
+        );
         const totalDiff = Math.abs(frontendPricing.total - calculatedTotal);
 
         // Reject order if total difference is more than ₹5 (security check for price manipulation)
-        if (totalDiff > 5) {          
+        if (totalDiff > 5) {
           return res.status(400).json({
             success: false,
-            message: 'Pricing validation failed. Product prices may have changed. Please refresh your cart and try again.',
-            errors: [{
-              field: 'pricing',
-              message: `Total amount mismatch: Expected ₹${calculatedTotal}, received ₹${frontendPricing.total}`
-            }]
+            message:
+              "Pricing validation failed. Product prices may have changed. Please refresh your cart and try again.",
+            errors: [
+              {
+                field: "pricing",
+                message: `Total amount mismatch: Expected ₹${calculatedTotal}, received ₹${frontendPricing.total}`,
+              },
+            ],
           });
         }
       }
@@ -273,8 +301,8 @@ class OrderController {
         items: processedItems,
         shippingAddress,
         payment: {
-          method: paymentMethod,
-          status: 'pending', // Always pending initially
+          method: "cod",
+          status: "pending", // Always pending initially
         },
         pricing: {
           subtotal: calculatedSubtotal,
@@ -289,88 +317,94 @@ class OrderController {
         deliveryTimeSlot: deliveryTimeSlot || undefined,
         statusHistory: [
           {
-            status: 'pending',
-            note: 'Order placed',
+            status: "pending",
+            note: "Order placed",
             updatedAt: new Date(),
           },
         ],
       });
 
       // For COD orders: Clear cart and send confirmation email immediately
-      if (paymentMethod === 'cod') {
+      if (paymentMethod === "cod") {
         // Clear user's cart
-        await Cart.findOneAndUpdate(
-          { user: req.user._id },
-          { items: [] }
-        );
+        await Cart.findOneAndUpdate({ user: req.user._id }, { items: [] });
 
         // Send order confirmation email
         try {
           const user = await User.findById(req.user._id);
           await sendOrderConfirmationEmail(order, user);
         } catch (emailError) {
-          console.error('❌ Failed to send order confirmation email:', emailError);
+          console.error(
+            "❌ Failed to send order confirmation email:",
+            emailError,
+          );
           // Don't fail the order if email fails
         }
 
         // Create notification for order creation
         try {
           await Notification.createNotification(order.user, {
-            type: 'order_created',
-            title: 'Order Placed Successfully',
+            type: "order_created",
+            title: "Order Placed Successfully",
             message: `Your order #${order.orderNumber} has been placed successfully. You will pay ₹${order.pricing.total} on delivery.`,
             order: order._id,
             data: {
               orderNumber: order.orderNumber,
-              status: 'pending',
+              status: "pending",
               total: order.pricing.total,
-              paymentMethod: 'COD',
+              paymentMethod: "COD",
             },
           });
         } catch (notificationError) {
-          console.error('❌ Failed to create order notification:', notificationError);
+          console.error(
+            "❌ Failed to create order notification:",
+            notificationError,
+          );
           // Don't fail the order if notification fails
         }
 
         res.status(201).json({
           success: true,
-          message: 'Order placed successfully! Pay on delivery.',
+          message: "Order placed successfully! Pay on delivery.",
           data: order,
         });
       } else {
         // For online payment: Don't clear cart or send email yet
         // These will be done after successful payment verification
-       
+
         // Create notification for online payment order creation
         try {
           await Notification.createNotification(order.user, {
-            type: 'order_created',
-            title: 'Order Created',
+            type: "order_created",
+            title: "Order Created",
             message: `Your order #${order.orderNumber} has been created. Please complete the payment of ₹${order.pricing.total}.`,
             order: order._id,
             data: {
               orderNumber: order.orderNumber,
-              status: 'pending',
+              status: "pending",
               total: order.pricing.total,
-              paymentMethod: 'Online',
+              // paymentMethod: "Online",
             },
           });
         } catch (notificationError) {
-          console.error('❌ Failed to create order notification:', notificationError);
+          console.error(
+            "❌ Failed to create order notification:",
+            notificationError,
+          );
           // Don't fail the order if notification fails
         }
-        
+
         res.status(201).json({
           success: true,
-          message: 'Order created. Please complete payment.',
+          message: "Order placed successfully!",
           data: order,
         });
       }
     } catch (error) {
-      console.error('Create order error:', error);
+      console.error("Create order error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to create order',
+        message: "Failed to create order",
         error: error.message,
       });
     }
@@ -387,19 +421,19 @@ class OrderController {
       const { status, note, cancellationReason, cancelledBy } = req.body;
 
       const validStatuses = [
-        'pending',
-        'confirmed',
-        'processing',
-        'shipped',
-        'delivered',
-        'cancelled',
-        'refunded',
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "refunded",
       ];
 
       if (!validStatuses.includes(status)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid order status',
+          message: "Invalid order status",
         });
       }
 
@@ -408,16 +442,16 @@ class OrderController {
       if (!order) {
         return res.status(404).json({
           success: false,
-          message: 'Order not found',
+          message: "Order not found",
         });
       }
 
       // Prevent admin from updating customer-cancelled orders
-      if (order.status === 'cancelled' && order.cancelledBy === 'customer') {
+      if (order.status === "cancelled" && order.cancelledBy === "customer") {
         return res.status(403).json({
           success: false,
-          message: 'Cannot update order cancelled by customer',
-          cancelledBy: 'customer',
+          message: "Cannot update order cancelled by customer",
+          cancelledBy: "customer",
           cancellationReason: order.cancellationReason,
         });
       }
@@ -425,7 +459,12 @@ class OrderController {
       const previousStatus = order.status;
 
       // Handle stock updates based on status change
-      if (status === 'confirmed' && (previousStatus === 'pending' || previousStatus === 'cancelled' || previousStatus === 'refunded')) {
+      if (
+        status === "confirmed" &&
+        (previousStatus === "pending" ||
+          previousStatus === "cancelled" ||
+          previousStatus === "refunded")
+      ) {
         // Reduce stock when order is confirmed from pending, cancelled, or refunded
         for (const item of order.items) {
           const product = await Product.findById(item.product);
@@ -444,10 +483,11 @@ class OrderController {
         // Create Shiprocket order when admin confirms the order
         try {
           const orderWithDetails = await Order.findById(id)
-            .populate('user')
-            .populate('items.product');
+            .populate("user")
+            .populate("items.product");
 
-          const shiprocketResponse = await shipRocketService.createOrder(orderWithDetails);
+          const shiprocketResponse =
+            await shipRocketService.createOrder(orderWithDetails);
 
           if (shiprocketResponse.order_id) {
             // Update order with Shiprocket details
@@ -457,7 +497,7 @@ class OrderController {
             // Generate AWB and request pickup for next day
             try {
               const awbResponse = await shipRocketService.generateAWB(
-                shiprocketResponse.shipment_id
+                shiprocketResponse.shipment_id,
               );
 
               if (awbResponse.response?.data?.awb_code) {
@@ -466,20 +506,28 @@ class OrderController {
               }
 
               // Request pickup for next day
-              await shipRocketService.requestPickup(shiprocketResponse.shipment_id);
-
+              await shipRocketService.requestPickup(
+                shiprocketResponse.shipment_id,
+              );
             } catch (awbError) {
-              console.error('Error generating AWB or requesting pickup:', awbError);
+              console.error(
+                "Error generating AWB or requesting pickup:",
+                awbError,
+              );
               // Continue even if AWB generation fails
             }
           }
         } catch (shiprocketError) {
-          console.error('Error creating Shiprocket order:', shiprocketError);
+          console.error("Error creating Shiprocket order:", shiprocketError);
           // Don't fail the status update if Shiprocket fails
           // Admin can manually create the shipment
         }
-      } else if ((status === 'cancelled' || status === 'refunded') && 
-                 (previousStatus === 'confirmed' || previousStatus === 'processing' || previousStatus === 'shipped')) {
+      } else if (
+        (status === "cancelled" || status === "refunded") &&
+        (previousStatus === "confirmed" ||
+          previousStatus === "processing" ||
+          previousStatus === "shipped")
+      ) {
         // Restore stock when order is cancelled or refunded (only if it was confirmed before)
         for (const item of order.items) {
           const product = await Product.findById(item.product);
@@ -488,28 +536,33 @@ class OrderController {
             await product.save();
           }
         }
-      } else if (status === 'confirmed' && previousStatus !== 'confirmed') {
+      } else if (status === "confirmed" && previousStatus !== "confirmed") {
         // Increment sales count when order is confirmed for the first time
         for (const item of order.items) {
           await Product.findByIdAndUpdate(item.product, {
-            $inc: { salesCount: item.quantity }
+            $inc: { salesCount: item.quantity },
           });
         }
-      } else if (status === 'delivered' && previousStatus !== 'delivered') {
+      } else if (status === "delivered" && previousStatus !== "delivered") {
         // Keep delivered logic for backward compatibility (no change needed)
-      } else if ((status === 'cancelled' || status === 'refunded') &&
-                 (previousStatus === 'confirmed' || previousStatus === 'processing' || previousStatus === 'shipped' || previousStatus === 'delivered')) {
+      } else if (
+        (status === "cancelled" || status === "refunded") &&
+        (previousStatus === "confirmed" ||
+          previousStatus === "processing" ||
+          previousStatus === "shipped" ||
+          previousStatus === "delivered")
+      ) {
         // Decrement sales count when confirmed order is cancelled/refunded
         for (const item of order.items) {
           await Product.findByIdAndUpdate(item.product, {
-            $inc: { salesCount: -item.quantity }
+            $inc: { salesCount: -item.quantity },
           });
         }
       }
 
       // Mark as cancelled by admin when admin sets status to cancelled
-      if (status === 'cancelled') {
-        order.cancelledBy = cancelledBy || 'admin';
+      if (status === "cancelled") {
+        order.cancelledBy = cancelledBy || "admin";
         if (cancellationReason) {
           order.cancellationReason = cancellationReason;
         } else if (note) {
@@ -522,30 +575,51 @@ class OrderController {
       // Send status update email
       try {
         const user = await User.findById(order.user);
-        if (user && status === 'shipped' && order.tracking?.trackingNumber) {
+        if (user && status === "shipped" && order.tracking?.trackingNumber) {
           // Send shipping notification with tracking info
           await sendOrderShippedEmail(order, user, {
             trackingNumber: order.tracking.trackingNumber,
-            courierName: order.tracking.courierName || 'Standard Delivery',
+            courierName: order.tracking.courierName || "Standard Delivery",
             estimatedDelivery: order.tracking.estimatedDelivery,
           });
         }
         // For other statuses (processing, delivered, cancelled), implement as needed
       } catch (emailError) {
-        console.error('❌ Failed to send status update email:', emailError);
+        console.error("❌ Failed to send status update email:", emailError);
         // Don't fail the status update if email fails
       }
 
       // Create notification for user
       try {
         const notificationMessages = {
-          pending: { title: 'Order Pending', message: `Your order #${order.orderNumber} is pending confirmation.` },
-          confirmed: { title: 'Order Confirmed', message: `Your order #${order.orderNumber} has been confirmed and is being processed.` },
-          processing: { title: 'Order Processing', message: `Your order #${order.orderNumber} is being prepared for shipment.` },
-          shipped: { title: 'Order Shipped', message: `Your order #${order.orderNumber} has been shipped. Track it using tracking number: ${order.trackingNumber || 'N/A'}` },
-          delivered: { title: 'Order Delivered', message: `Your order #${order.orderNumber} has been delivered. Thank you for shopping with us!` },
-          cancelled: { title: 'Order Cancelled', message: `Your order #${order.orderNumber} has been cancelled. ${order.cancellationReason || ''}` },
-          refunded: { title: 'Order Refunded', message: `Your order #${order.orderNumber} has been refunded. The amount will be credited to your account.` },
+          pending: {
+            title: "Order Pending",
+            message: `Your order #${order.orderNumber} is pending confirmation.`,
+          },
+          confirmed: {
+            title: "Order Confirmed",
+            message: `Your order #${order.orderNumber} has been confirmed and is being processed.`,
+          },
+          processing: {
+            title: "Order Processing",
+            message: `Your order #${order.orderNumber} is being prepared for shipment.`,
+          },
+          shipped: {
+            title: "Order Shipped",
+            message: `Your order #${order.orderNumber} has been shipped. Track it using tracking number: ${order.trackingNumber || "N/A"}`,
+          },
+          delivered: {
+            title: "Order Delivered",
+            message: `Your order #${order.orderNumber} has been delivered. Thank you for shopping with us!`,
+          },
+          cancelled: {
+            title: "Order Cancelled",
+            message: `Your order #${order.orderNumber} has been cancelled. ${order.cancellationReason || ""}`,
+          },
+          refunded: {
+            title: "Order Refunded",
+            message: `Your order #${order.orderNumber} has been refunded. The amount will be credited to your account.`,
+          },
         };
 
         const notificationData = notificationMessages[status];
@@ -563,20 +637,20 @@ class OrderController {
           });
         }
       } catch (notificationError) {
-        console.error('❌ Failed to create notification:', notificationError);
+        console.error("❌ Failed to create notification:", notificationError);
         // Don't fail the status update if notification fails
       }
 
       res.json({
         success: true,
-        message: 'Order status updated successfully',
+        message: "Order status updated successfully",
         data: order,
       });
     } catch (error) {
-      console.error('Update order status error:', error);
+      console.error("Update order status error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to update order status',
+        message: "Failed to update order status",
         error: error.message,
       });
     }
@@ -597,24 +671,27 @@ class OrderController {
       if (!order) {
         return res.status(404).json({
           success: false,
-          message: 'Order not found',
+          message: "Order not found",
         });
       }
 
-
       // Check if user owns this order or is admin
-      const isOwner = order.user._id.toString() === req.user._id.toString();
-      const isAdmin = req.user.role === 'admin';
-      
+      const cancelOrderUserId =
+        typeof order.user === "object" && order.user._id
+          ? order.user._id.toString()
+          : order.user.toString();
+      const isOwner = cancelOrderUserId === req.user._id.toString();
+      const isAdmin = req.user.role === "admin";
+
       if (!isOwner && !isAdmin) {
         return res.status(403).json({
           success: false,
-          message: 'Not authorized to cancel this order',
+          message: "Not authorized to cancel this order",
         });
       }
 
       // Check if order can be cancelled
-      if (['shipped', 'delivered', 'cancelled'].includes(order.status)) {
+      if (["shipped", "delivered", "cancelled"].includes(order.status)) {
         return res.status(400).json({
           success: false,
           message: `Cannot cancel order with status: ${order.status}`,
@@ -630,21 +707,26 @@ class OrderController {
       };
 
       // STEP 1: Cancel Shiprocket shipment (if exists)
-      
+
       // return
       if (order.shiprocketShipmentId) {
         try {
-          const cancelResult = await cancelShiprocketShipment(order.shiprocketShipmentId);
+          const cancelResult = await cancelShiprocketShipment(
+            order.shiprocketShipmentId,
+          );
           if (cancelResult.success) {
             cancellationResults.shiprocketCancelled = true;
             order.statusHistory.push({
-              status: 'cancelled',
-              note: 'Shipment cancelled in Shiprocket',
+              status: "cancelled",
+              note: "Shipment cancelled in Shiprocket",
               updatedAt: new Date(),
             });
           }
         } catch (shipError) {
-          console.error('❌ Shiprocket cancellation failed:', shipError.message);
+          console.error(
+            "❌ Shiprocket cancellation failed:",
+            shipError.message,
+          );
           cancellationResults.errors.push(`Shiprocket: ${shipError.message}`);
           // Continue with order cancellation even if Shiprocket fails
         }
@@ -652,21 +734,32 @@ class OrderController {
       }
 
       // STEP 2: Process refund for prepaid orders
-      const isPrepaid = order.payment?.method !== 'cod';
-      const isPaymentCompleted = order.payment?.status === 'completed';
+      const isPrepaid = order.payment?.method !== "cod";
+      const isPaymentCompleted = order.payment?.status === "completed";
       const hasRazorpayPaymentId = !!order.razorpayPaymentId;
       const isRefundNotProcessed = !order.refund?.id;
 
-      if (isPrepaid && isPaymentCompleted && hasRazorpayPaymentId && isRefundNotProcessed) {
+      if (
+        isPrepaid &&
+        isPaymentCompleted &&
+        hasRazorpayPaymentId &&
+        isRefundNotProcessed
+      ) {
         try {
           const refundAmount = order.pricing?.total || 0;
-          
+
           // Step 1: Create the refund
-          const refund = await createRefund(order.razorpayPaymentId, refundAmount);
-          
+          const refund = await createRefund(
+            order.razorpayPaymentId,
+            refundAmount,
+          );
+
           // Step 2: Fetch complete refund details with timeline
-          const completeRefundData = await fetchRefund(order.razorpayPaymentId, refund.id);
-          
+          const completeRefundData = await fetchRefund(
+            order.razorpayPaymentId,
+            refund.id,
+          );
+
           // Step 3: Store complete refund information
           order.refund = {
             id: completeRefundData.id,
@@ -674,36 +767,41 @@ class OrderController {
             amount: completeRefundData.amount / 100, // Convert paise to rupees
             currency: completeRefundData.currency,
             status: completeRefundData.status,
-            speed: completeRefundData.speed_requested || completeRefundData.speed_processed || 'normal',
+            speed:
+              completeRefundData.speed_requested ||
+              completeRefundData.speed_processed ||
+              "normal",
             notes: completeRefundData.notes || {},
             createdAt: new Date(completeRefundData.created_at * 1000),
-            processedAt: completeRefundData.processed_at ? new Date(completeRefundData.processed_at * 1000) : new Date(),
+            processedAt: completeRefundData.processed_at
+              ? new Date(completeRefundData.processed_at * 1000)
+              : new Date(),
             batchId: completeRefundData.batch_id || null,
             razorpayData: completeRefundData, // Store complete Razorpay response
           };
-          
-          order.payment.status = 'refunded';
+
+          order.payment.status = "refunded";
           cancellationResults.refundProcessed = true;
-          
+
           order.statusHistory.push({
-            status: 'cancelled',
+            status: "cancelled",
             note: `Refund initiated: ₹${refundAmount} (Refund ID: ${refund.id}, Status: ${completeRefundData.status})`,
             updatedAt: new Date(),
           });
         } catch (refundError) {
-          console.error('❌ Refund processing failed:', refundError.message);
+          console.error("❌ Refund processing failed:", refundError.message);
           cancellationResults.errors.push(`Refund: ${refundError.message}`);
-          
+
           // Mark refund as failed
           order.refund = {
-            status: 'failed',
+            status: "failed",
             amount: order.pricing?.total || 0,
             failureReason: refundError.message,
             processedAt: new Date(),
           };
           // Continue with order cancellation even if refund fails
         }
-      } 
+      }
       // STEP 3: Restore product stock
       try {
         for (const item of order.items) {
@@ -713,56 +811,64 @@ class OrderController {
         }
         cancellationResults.stockRestored = true;
       } catch (stockError) {
-        console.error('❌ Error restoring stock:', stockError.message);
+        console.error("❌ Error restoring stock:", stockError.message);
         cancellationResults.errors.push(`Stock: ${stockError.message}`);
       }
 
       // STEP 4: Update order status to cancelled
-      order.cancellationReason = reason || 'No reason provided';
-      order.cancelledBy = isAdmin ? 'admin' : 'customer';
-      await order.updateStatus('cancelled', `Cancelled by ${order.cancelledBy}: ${reason || 'No reason provided'}`);
+      order.cancellationReason = reason || "No reason provided";
+      order.cancelledBy = isAdmin ? "admin" : "customer";
+      await order.updateStatus(
+        "cancelled",
+        `Cancelled by ${order.cancelledBy}: ${reason || "No reason provided"}`,
+      );
       cancellationResults.orderCancelled = true;
 
       // Create notification for order cancellation
       try {
         let notificationMessage = `Your order #${order.orderNumber} has been cancelled`;
-        
+
         if (cancellationResults.refundProcessed) {
           notificationMessage += `. Refund of ₹${order.pricing?.total} has been initiated and will be processed within 5-7 business days`;
-        } else if (order.payment?.method === 'cod') {
-          notificationMessage += '. No payment was made for this order';
+        } else if (order.payment?.method === "cod") {
+          notificationMessage += ". No payment was made for this order";
         }
-        
+
         if (reason) {
           notificationMessage += `. Reason: ${reason}`;
         }
 
         await Notification.createNotification(order.user, {
-          type: 'order_cancelled',
-          title: 'Order Cancelled',
+          type: "order_cancelled",
+          title: "Order Cancelled",
           message: notificationMessage,
           order: order._id,
           data: {
             orderNumber: order.orderNumber,
-            status: 'cancelled',
+            status: "cancelled",
             cancelledBy: order.cancelledBy,
-            reason: reason || 'No reason provided',
+            reason: reason || "No reason provided",
             refundProcessed: cancellationResults.refundProcessed,
-            refundAmount: cancellationResults.refundProcessed ? order.pricing?.total : 0,
+            refundAmount: cancellationResults.refundProcessed
+              ? order.pricing?.total
+              : 0,
           },
         });
       } catch (notificationError) {
-        console.error('❌ Failed to create cancellation notification:', notificationError);
+        console.error(
+          "❌ Failed to create cancellation notification:",
+          notificationError,
+        );
         // Don't fail the cancellation if notification fails
       }
 
       // Prepare response message
-      let message = 'Order cancelled successfully';
+      let message = "Order cancelled successfully";
       if (cancellationResults.refundProcessed) {
         message += `. Refund of ₹${order.pricing?.total} has been initiated`;
       }
       if (cancellationResults.errors.length > 0) {
-        message += `. Note: ${cancellationResults.errors.join(', ')}`;
+        message += `. Note: ${cancellationResults.errors.join(", ")}`;
       }
 
       res.json({
@@ -772,10 +878,10 @@ class OrderController {
         cancellationSummary: cancellationResults,
       });
     } catch (error) {
-      console.error('❌ Cancel order error:', error);
+      console.error("❌ Cancel order error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to cancel order',
+        message: "Failed to cancel order",
         error: error.message,
       });
     }
@@ -789,24 +895,24 @@ class OrderController {
   async refreshRefundStatus(req, res) {
     try {
       const { id } = req.params;
-      
+
       const order = await Order.findById(id);
 
       if (!order) {
         return res.status(404).json({
           success: false,
-          message: 'Order not found',
+          message: "Order not found",
         });
       }
 
       // Check if user owns this order or is admin
       const isOwner = order.user._id.toString() === req.user._id.toString();
-      const isAdmin = req.user.role === 'admin';
-      
+      const isAdmin = req.user.role === "admin";
+
       if (!isOwner && !isAdmin) {
         return res.status(403).json({
           success: false,
-          message: 'Not authorized to access this order',
+          message: "Not authorized to access this order",
         });
       }
 
@@ -814,15 +920,17 @@ class OrderController {
       if (!order.refund?.id) {
         return res.status(400).json({
           success: false,
-          message: 'No refund found for this order',
+          message: "No refund found for this order",
         });
       }
 
-      
       try {
         // Fetch latest refund data from Razorpay
-        const completeRefundData = await fetchRefund(order.razorpayPaymentId, order.refund.id);
-        
+        const completeRefundData = await fetchRefund(
+          order.razorpayPaymentId,
+          order.refund.id,
+        );
+
         // Update order with latest refund information
         order.refund = {
           id: completeRefundData.id,
@@ -830,34 +938,39 @@ class OrderController {
           amount: completeRefundData.amount / 100,
           currency: completeRefundData.currency,
           status: completeRefundData.status,
-          speed: completeRefundData.speed_requested || completeRefundData.speed_processed || 'normal',
+          speed:
+            completeRefundData.speed_requested ||
+            completeRefundData.speed_processed ||
+            "normal",
           notes: completeRefundData.notes || {},
           createdAt: new Date(completeRefundData.created_at * 1000),
-          processedAt: completeRefundData.processed_at ? new Date(completeRefundData.processed_at * 1000) : order.refund.processedAt,
+          processedAt: completeRefundData.processed_at
+            ? new Date(completeRefundData.processed_at * 1000)
+            : order.refund.processedAt,
           batchId: completeRefundData.batch_id || null,
           razorpayData: completeRefundData,
         };
-        
+
         await order.save();
-        
+
         res.json({
           success: true,
-          message: 'Refund status updated successfully',
+          message: "Refund status updated successfully",
           data: order,
         });
       } catch (fetchError) {
-        console.error('❌ Error fetching refund status:', fetchError.message);
+        console.error("❌ Error fetching refund status:", fetchError.message);
         res.status(500).json({
           success: false,
-          message: 'Failed to fetch refund status from Razorpay',
+          message: "Failed to fetch refund status from Razorpay",
           error: fetchError.message,
         });
       }
     } catch (error) {
-      console.error('❌ Refresh refund status error:', error);
+      console.error("❌ Refresh refund status error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to refresh refund status',
+        message: "Failed to refresh refund status",
         error: error.message,
       });
     }
@@ -874,29 +987,30 @@ class OrderController {
         page = 1,
         limit = 20,
         status,
-        sort = '-createdAt',
+        sort = "-createdAt",
         search,
       } = req.query;
 
-      // Exclude cancelled orders from admin view
-      const query = {
-        status: { $ne: 'cancelled' }
-      };
+      // Build query - by default show all orders; if no status filter exclude cancelled
+      const query = {};
 
       if (status) {
         query.status = status;
+      } else {
+        query.status = { $ne: "cancelled" };
       }
 
       if (search) {
         query.$or = [
-          { orderNumber: { $regex: search, $options: 'i' } },
-          { 'shippingAddress.phone': { $regex: search, $options: 'i' } },
+          { orderNumber: { $regex: search, $options: "i" } },
+          { "shippingAddress.phone": { $regex: search, $options: "i" } },
         ];
       }
 
       const skip = (page - 1) * limit;
       const [orders, total] = await Promise.all([
         Order.find(query)
+          .populate("user", "firstName lastName email phone")
           .sort(sort)
           .skip(skip)
           .limit(Number(limit)),
@@ -914,10 +1028,10 @@ class OrderController {
         },
       });
     } catch (error) {
-      console.error('Get all orders error:', error);
+      console.error("Get all orders error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch orders',
+        message: "Failed to fetch orders",
         error: error.message,
       });
     }
@@ -937,31 +1051,28 @@ class OrderController {
       if (!order) {
         return res.status(404).json({
           success: false,
-          message: 'Order not found',
+          message: "Order not found",
         });
       }
 
       // Check if user owns this order or is admin
-      if (
-        order.user.toString() !== req.user.id &&
-        req.user.role !== 'admin'
-      ) {
+      if (order.user.toString() !== req.user.id && req.user.role !== "admin") {
         return res.status(403).json({
           success: false,
-          message: 'Not authorized to view this order',
+          message: "Not authorized to view this order",
         });
       }
 
       if (!order.shiprocketShipmentId) {
         return res.status(400).json({
           success: false,
-          message: 'Shipment tracking not available for this order',
+          message: "Shipment tracking not available for this order",
         });
       }
 
       // Get tracking information from Shiprocket
       const trackingInfo = await shipRocketService.trackShipment(
-        order.shiprocketShipmentId
+        order.shiprocketShipmentId,
       );
 
       res.json({
@@ -969,10 +1080,10 @@ class OrderController {
         data: trackingInfo,
       });
     } catch (error) {
-      console.error('Track shipment error:', error);
+      console.error("Track shipment error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to track shipment',
+        message: "Failed to track shipment",
         error: error.message,
       });
     }
@@ -993,7 +1104,7 @@ class OrderController {
       if (!order) {
         return res.status(404).json({
           success: false,
-          message: 'Order not found',
+          message: "Order not found",
         });
       }
 
@@ -1007,14 +1118,14 @@ class OrderController {
 
       res.json({
         success: true,
-        message: 'Order shipment information updated successfully',
+        message: "Order shipment information updated successfully",
         data: order,
       });
     } catch (error) {
-      console.error('Update order shipment error:', error);
+      console.error("Update order shipment error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to update order shipment information',
+        message: "Failed to update order shipment information",
         error: error.message,
       });
     }

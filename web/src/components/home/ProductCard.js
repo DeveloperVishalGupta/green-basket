@@ -2,7 +2,7 @@
 
 import CartNotification from "@/components/ui/CartNotification";
 import { useAuth } from "@/hooks/useAuth";
-import { useCheckWishlist, useToggleWishlist } from "@/hooks/useWishlist";
+import { useToggleWishlist, useWishlist } from "@/hooks/useWishlist";
 import { useCartStore } from "@/store/cartStore";
 import {
   HeartFilled,
@@ -38,12 +38,16 @@ export default function ProductCard({ product }) {
 
   // Wishlist
   const productId = product._id || product.id;
-  const { data: wishlistCheck } = useCheckWishlist(productId, {
-    enabled: !!user,
-  });
+  const { data: wishlistData } = useWishlist({ enabled: !!user });
   const { toggle: toggleWishlist, isLoading: isTogglingWishlist } =
     useToggleWishlist();
-  const isInWishlist = wishlistCheck?.data?.isInWishlist || false;
+  const wishlistItems = wishlistData?.data?.items || wishlistData?.data || [];
+  const isInWishlist = Array.isArray(wishlistItems)
+    ? wishlistItems.some((w) => {
+        const wId = w.product?._id || w.product || w._id;
+        return wId?.toString() === productId?.toString();
+      })
+    : false;
 
   // Cart key is unique per product + variant
   const variantId = selectedVariant?._id || selectedVariant?.id;

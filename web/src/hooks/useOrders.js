@@ -3,17 +3,17 @@
  * Centralized data fetching for orders using React Query
  */
 
-import { ordersAPI } from '@/lib/api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ordersAPI } from "@/lib/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 /**
  * Query keys for orders
  */
 export const orderKeys = {
-  all: ['orders'],
-  lists: () => [...orderKeys.all, 'list'],
+  all: ["orders"],
+  lists: () => [...orderKeys.all, "list"],
   list: (filters) => [...orderKeys.lists(), filters],
-  details: () => [...orderKeys.all, 'detail'],
+  details: () => [...orderKeys.all, "detail"],
   detail: (id) => [...orderKeys.details(), id],
 };
 
@@ -55,7 +55,7 @@ export function useOrder(orderId, options = {}) {
  */
 export function useAdminOrders(options = {}) {
   return useQuery({
-    queryKey: [...orderKeys.all, 'admin'],
+    queryKey: [...orderKeys.all, "admin"],
     queryFn: async () => {
       const response = await ordersAPI.getAllAdmin();
       return response.data;
@@ -86,11 +86,12 @@ export function useCancelOrder() {
 
   return useMutation({
     mutationFn: ({ orderId, reason }) => ordersAPI.cancel(orderId, reason),
-    onSuccess: (data) => {
+    onSuccess: (response) => {
       // Invalidate both list and detail queries
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
-      if (data?.data?._id) {
-        queryClient.invalidateQueries({ queryKey: orderKeys.detail(data.data._id) });
+      const orderId = response?.data?.data?._id;
+      if (orderId) {
+        queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
       }
     },
   });
@@ -103,12 +104,15 @@ export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ orderId, status, note }) => ordersAPI.updateStatus(orderId, { status, note }),
+    mutationFn: ({ orderId, status, note }) =>
+      ordersAPI.updateStatus(orderId, { status, note }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: [...orderKeys.all, 'admin'] });
+      queryClient.invalidateQueries({ queryKey: [...orderKeys.all, "admin"] });
       if (data?.data?._id) {
-        queryClient.invalidateQueries({ queryKey: orderKeys.detail(data.data._id) });
+        queryClient.invalidateQueries({
+          queryKey: orderKeys.detail(data.data._id),
+        });
       }
     },
   });
@@ -125,10 +129,11 @@ export function useRefreshRefundStatus() {
     onSuccess: (data) => {
       // Invalidate order detail to show updated refund info
       if (data?.data?._id) {
-        queryClient.invalidateQueries({ queryKey: orderKeys.detail(data.data._id) });
+        queryClient.invalidateQueries({
+          queryKey: orderKeys.detail(data.data._id),
+        });
       }
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
     },
   });
 }
-
