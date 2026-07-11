@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { CheckCircleOutlined, ShoppingCartOutlined } from '@ant-design/icons';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { CheckCircleOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 /**
  * Cart Notification Component
@@ -24,7 +24,7 @@ export default function CartNotification({ product, onClose }) {
     const progressStep = 100 / steps;
 
     const progressTimer = setInterval(() => {
-      setProgress(prev => {
+      setProgress((prev) => {
         const next = prev - progressStep;
         if (next <= 0) {
           clearInterval(progressTimer);
@@ -52,16 +52,15 @@ export default function CartNotification({ product, onClose }) {
   const imageUrl = product.images?.[0]?.url || product.images?.[0] || null;
 
   return (
-    <div 
+    <div
       className={`fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       }`}
-      style={{ width: 'calc(100% - 2rem)', maxWidth: '400px' }}
-    >
+      style={{ width: "calc(100% - 2rem)", maxWidth: "400px" }}>
       <div className="bg-white rounded-2xl shadow-2xl border-2 border-emerald-500 overflow-hidden">
         {/* Progress Bar */}
         <div className="h-1 bg-gray-100">
-          <div 
+          <div
             className="h-full bg-emerald-500 transition-all duration-50"
             style={{ width: `${progress}%` }}
           />
@@ -79,15 +78,17 @@ export default function CartNotification({ product, onClose }) {
 
             {/* Product Info */}
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-bold text-gray-900 mb-1">Added to Cart!</h4>
+              <h4 className="text-sm font-bold text-gray-900 mb-1">
+                Added to Cart!
+              </h4>
               <div className="flex items-center gap-2">
                 {imageUrl && (
                   <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                    <Image 
-                      src={imageUrl} 
-                      alt={product.name} 
-                      fill 
-                      className="object-cover" 
+                    <Image
+                      src={imageUrl}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
                       sizes="48px"
                     />
                   </div>
@@ -97,7 +98,7 @@ export default function CartNotification({ product, onClose }) {
                     {product.name}
                   </p>
                   <p className="text-sm font-bold text-emerald-600">
-                    ₹{product.price}
+                    {console.log(product)}₹{product.price}
                   </p>
                 </div>
               </div>
@@ -109,10 +110,18 @@ export default function CartNotification({ product, onClose }) {
                 setVisible(false);
                 setTimeout(() => onClose?.(), 300);
               }}
-              className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -124,14 +133,12 @@ export default function CartNotification({ product, onClose }) {
                 setVisible(false);
                 setTimeout(() => onClose?.(), 300);
               }}
-              className="flex-1 rounded-lg border-2 border-gray-300 bg-white py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-            >
+              className="flex-1 rounded-lg border-2 border-gray-300 bg-white py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
               Continue Shopping
             </button>
             <Link
               href="/cart"
-              className="flex-1 rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1"
-            >
+              className="flex-1 rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1">
               <ShoppingCartOutlined />
               View Cart
             </Link>

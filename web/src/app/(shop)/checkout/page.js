@@ -497,38 +497,6 @@ export default function CheckoutPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Delivery Address Section */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              {/* <div className="flex items-center justify-between mb-5">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <span className="text-2xl">📍</span>
-                  Delivery Address
-                </h2>
-                <div className="flex gap-2">
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<PlusOutlined />}
-                    onClick={() => {
-                      const couponParam = searchParams?.get("coupon");
-                      const url = couponParam
-                        ? `/addresses/add?coupon=${encodeURIComponent(couponParam)}`
-                        : "/addresses/add";
-                      router.push(url);
-                    }}>
-                    Add Address
-                  </Button>
-                  <Button
-                    size="small"
-                    onClick={() => {
-                      const couponParam = searchParams?.get("coupon");
-                      const url = couponParam
-                        ? `/addresses?coupon=${encodeURIComponent(couponParam)}`
-                        : "/addresses";
-                      router.push(url);
-                    }}>
-                    Manage
-                  </Button>
-                </div>
-              </div> */}
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="flex items-center gap-2 text-2xl font-bold">
                   <span>📍</span>

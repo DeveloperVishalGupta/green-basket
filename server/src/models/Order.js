@@ -33,6 +33,7 @@ const orderSchema = new mongoose.Schema(
           required: true,
           min: 1,
         },
+        variant: String,
         size: String,
         color: String,
         price: {

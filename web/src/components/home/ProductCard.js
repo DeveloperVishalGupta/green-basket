@@ -87,6 +87,8 @@ export default function ProductCard({ product }) {
   const ratingCount = product.rating?.count ?? product.ratingCount ?? 0;
 
   const handleAddToCart = (e) => {
+    const renderCount = 0;
+    console.log("Render count:", renderCount + 1);
     e.preventDefault();
     if (!user) {
       setPendingProduct(

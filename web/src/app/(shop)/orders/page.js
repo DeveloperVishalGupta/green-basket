@@ -135,8 +135,11 @@ export default function OrdersPage() {
       icon: null,
     };
     return (
-      <Tag color={config.color} icon={config.icon} className="font-semibold">
-        {config.text}
+      <Tag
+        color={config.color}
+        // icon={config.icon}
+        className="font-semibold">
+        <span className="p-1">{config.text}</span>
       </Tag>
     );
   };
@@ -149,25 +152,41 @@ export default function OrdersPage() {
         onClick={() => router.push(`/orders/${order._id}`)}
         className="bg-white rounded-2xl p-5 shadow-md hover:shadow-xl transition-all duration-300 mb-4 cursor-pointer border-2 border-transparent hover:border-emerald-200">
         {/* Order Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between ">
           <div>
-            <p className="text-xs text-gray-500 font-medium">
-              Order #{order.orderNumber || order._id?.slice(-6).toUpperCase()}
-            </p>
-            <p className="text-sm font-bold text-gray-900 mt-1">
-              {new Date(order.createdAt).toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
+            <p className="text-xs flex flex-col  font-medium">
+              <span className="text-xs mb-1 text-gray-500">Order ID</span>
+              <span className="text-sm text-gray-900">
+                #{order.orderNumber || order._id?.slice(-6).toUpperCase()}
+              </span>
             </p>
           </div>
-          {getStatusBadge(order.status)}
+          <div>
+            <div className="flex text-xs mb-1 items-center gap-1">
+              <span className=" font-semibold text-gray-900 mt-1">
+                {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+
+              <span className="font-medium text-gray-500 mt-1">{"|"}</span>
+              <span className="font-medium text-gray-500 mt-1">
+                {new Date(order.createdAt).toLocaleString("en-IN", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </span>
+            </div>
+            {getStatusBadge(order.status)}
+          </div>
         </div>
 
         {/* Order Items Preview */}
-        <div className="flex gap-4 mb-4">
-          <div className="h-20 w-20 orderPageProductImage shrink-0 overflow-hidden rounded-xl bg-linear-to-br from-gray-100 to-gray-200">
+        <div className="flex gap-4 mt-2 mb-4">
+          <div className="h-20 w-20 border-gray-300 border orderPageProductImage shrink-0 overflow-hidden rounded-xl bg-linear-to-br from-gray-100 to-gray-200">
             {firstProduct?.image ? (
               <Image
                 src={firstProduct.image}
@@ -201,8 +220,7 @@ export default function OrdersPage() {
             )}
             <p className="text-sm text-gray-600 mt-2 flex items-center gap-2">
               <span className="bg-gray-100 px-2 py-1 rounded-lg">
-                {order.items.reduce((sum, item) => sum + item.quantity, 0)}{" "}
-                items
+                {order.items.length} items
               </span>
               <span className="font-bold bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
                 ₹{order.pricing?.total?.toLocaleString() || "0"}
@@ -373,7 +391,7 @@ export default function OrdersPage() {
             <Badge
               count={activeOrders.length}
               showZero={false}
-              className="bg-emerald-500"
+              // className="bg-emerald-500"
             />
           )}
         </span>
@@ -465,7 +483,7 @@ export default function OrdersPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      <main className="mx-auto max-w-7xl px-4">
         <Tabs
           defaultActiveKey="active"
           items={tabItems}

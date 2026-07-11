@@ -80,6 +80,7 @@ class OrderController {
         "user",
         "firstName lastName email phone",
       );
+      // console.log("Fetched Order:", order);
 
       if (!order) {
         return res.status(404).json({
@@ -198,13 +199,13 @@ class OrderController {
 
         calculatedSubtotal += itemSubtotal;
 
+        console.log("varients", variant, variant.label);
         processedItems.push({
           product: product._id,
           name: product.name,
           slug: product.slug,
           image: product.images?.[0]?.url || "",
           quantity: item.quantity,
-
           variant: variant.label, // ✅ changed
           price: itemPrice, // ✅ changed
           subtotal: itemSubtotal,
