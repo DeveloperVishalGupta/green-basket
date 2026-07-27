@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 /**
  * Profile Layout
@@ -18,7 +18,7 @@ export default function ProfileLayout({ children }) {
     if (!loading) {
       // Redirect if not logged in
       if (!user) {
-        router.push('/login?redirect=/profile');
+        router.push("/");
         return;
       }
       // All authenticated users (customer, admin, vendor) can access their profile

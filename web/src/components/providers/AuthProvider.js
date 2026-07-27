@@ -8,6 +8,7 @@
  */
 
 import { authAPI } from "@/lib/api";
+import { useCartStore } from "@/store/cartStore";
 import { useRouter } from "next/navigation";
 import {
   createContext,
@@ -140,6 +141,14 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       await authAPI.logout();
+      localStorage.removeItem("token");
+
+      // Switch back to guest cart
+      useCartStore.persist.setOptions({
+        name: `green-basket-cart-guest`,
+      });
+
+      await useCartStore.persist.rehydrate();
     } catch {
       // ignore logout errors
     } finally {

@@ -2,13 +2,13 @@
  * Categories Section Component
  * Displays category carousel on landing page with API integration
  */
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { Carousel, Spin, Alert } from 'antd';
-import { FireOutlined, RightOutlined, LeftOutlined } from '@ant-design/icons';
-import { useCategories } from '@/hooks/useCategories';
-import CategoryCard from './CategoryCard';
+import { useCategories } from "@/hooks/useCategories";
+import { RightOutlined } from "@ant-design/icons";
+import { Alert, Spin } from "antd";
+import Link from "next/link";
+import CategoryCard from "./CategoryCard";
 
 // Custom arrow components for Carousel
 const CustomPrevArrow = ({ currentSlide, slideCount, ...props }) => (
@@ -47,13 +47,12 @@ export default function CategoriesSection() {
         <div className="flex items-center gap-2">
           {/* <FireOutlined className="text-orange-500 text-xl md:text-2xl" /> */}
           <h2 className="text-lg md:text-2xl lg:text-3xl font-bold text-gray-900">
-           🔥 Shop by Category
-           </h2>
+            🔥 Shop by Category
+          </h2>
         </div>
         <Link
           href="/categories"
-          className="text-sm md:text-base font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 hover:gap-2 transition-all"
-        >
+          className="text-sm md:text-base font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 hover:gap-2 transition-all">
           View all <RightOutlined className="text-xs" />
         </Link>
       </div>
@@ -63,66 +62,13 @@ export default function CategoriesSection() {
           <Spin size="large" />
         </div>
       ) : categories.length > 0 ? (
-        // <div className="mx-auto max-w-7xl">
-        //   <Carousel
-        //     infinite={categories.length > 4}
-        //     speed={800}
-        //     autoplay={categories.length > 4}
-        //     autoplaySpeed={4000}
-        //     slidesToShow={6}
-        //     slidesToScroll={1}
-        //     dots={false}
-        //     arrows={false}
-        //     responsive={[
-        //       {
-        //         breakpoint: 1280,
-        //         settings: {
-        //           slidesToShow: 5,
-        //           slidesToScroll: 1,
-        //         },
-        //       },
-        //       {
-        //         breakpoint: 1024,
-        //         settings: {
-        //           slidesToShow: 4,
-        //           slidesToScroll: 1,
-        //         },
-        //       },
-        //       {
-        //         breakpoint: 768,
-        //         settings: {
-        //           slidesToShow: 3,
-        //           slidesToScroll: 1,
-        //         },
-        //       },
-        //       {
-        //         breakpoint: 640,
-        //         settings: {
-        //           slidesToShow: 2.5,
-        //           slidesToScroll: 1,
-        //         },
-        //       },
-        //       {
-        //         breakpoint: 480,
-        //         settings: {
-        //           slidesToShow: 2,
-        //           slidesToScroll: 1,
-        //         },
-        //       },
-        //     ]}
-        //     className="category-carousel -mx-2"
-        //   >
-            
-        //   </Carousel>
-        // </div>
-        <div className='flex overflow-x-auto -mx-2'>
-     {categories.map((category) => (
-              <div key={category._id} className="px-2 md:px-3">
-                <CategoryCard category={category} />
-              </div>
-            ))}
+        <div className="flex  overflow-x-auto ">
+          {categories.map((category) => (
+            <div key={category._id} className="px-2 min-w-[8rem] md:px-3">
+              <CategoryCard category={category} />
+            </div>
+          ))}
         </div>
-        
       ) : (
         <div className="text-center py-12 text-gray-500">
           No categories available

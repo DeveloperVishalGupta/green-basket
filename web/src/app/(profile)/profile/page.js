@@ -44,30 +44,6 @@ export default function ProfilePage() {
     points: 0,
   });
 
-  useEffect(() => {
-    // Calculate stats from orders data
-    if (ordersData?.data) {
-      const orders = ordersData.data;
-      const completedOrders = orders.filter(
-        (order) => order.status === "delivered" || order.status === "completed",
-      ).length;
-
-      // Calculate points: 10 points per completed order + 1 point per ₹100 spent
-      const totalSpent = orders.reduce(
-        (sum, order) => sum + (order.totalAmount || 0),
-        0,
-      );
-      const calculatedPoints =
-        completedOrders * 10 + Math.floor(totalSpent / 100);
-
-      setStats({
-        orders: orders.length,
-        completed: completedOrders,
-        points: calculatedPoints,
-      });
-    }
-  }, [ordersData]);
-
   if (loading || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-linear-to-br from-emerald-50 to-teal-50">
@@ -189,6 +165,30 @@ export default function ProfilePage() {
 
   const completionRate =
     stats.orders > 0 ? (stats.completed / stats.orders) * 100 : 0;
+
+  useEffect(() => {
+    // Calculate stats from orders data
+    if (ordersData?.data) {
+      const orders = ordersData.data;
+      const completedOrders = orders.filter(
+        (order) => order.status === "delivered" || order.status === "completed",
+      ).length;
+
+      // Calculate points: 10 points per completed order + 1 point per ₹100 spent
+      const totalSpent = orders.reduce(
+        (sum, order) => sum + (order.totalAmount || 0),
+        0,
+      );
+      const calculatedPoints =
+        completedOrders * 10 + Math.floor(totalSpent / 100);
+
+      setStats({
+        orders: orders.length,
+        completed: completedOrders,
+        points: calculatedPoints,
+      });
+    }
+  }, [ordersData]);
 
   return (
     <div className="min-h-screen bg-white/95 pb-20 md:pb-4 lg:pl-0">

@@ -72,7 +72,7 @@ export default function CategoriesModal({ modalOpen, setOpen }) {
               <p className="text-gray-600">Try a different search term</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-5">
               {categories.map((category) => (
                 <div
                   key={category.id}

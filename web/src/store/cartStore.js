@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
 /**
  * Shopping Cart Store using Zustand
  * Manages cart state with localStorage persistence
  */
 
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 /**
  * Cart store with persistent state
@@ -18,45 +18,47 @@ export const useCartStore = create(
       // State
       items: [],
       pendingProduct: null, // Product to add after login
-      
+
       /**
        * Add item to cart or increment quantity if already exists
        * @param {Object} product - Product object to add
        * @param {number} quantity - Quantity to add (default: 1)
        */
-      
+
       addItem: (product, quantity = 1) => {
         set((state) => {
-          const existingItem = state.items.find(item => item.id === product.id);
-          
+          const existingItem = state.items.find(
+            (item) => item.id === product.id,
+          );
+
           if (existingItem) {
             // Update quantity of existing item
             return {
-              items: state.items.map(item =>
+              items: state.items.map((item) =>
                 item.id === product.id
                   ? { ...item, quantity: item.quantity + quantity }
-                  : item
+                  : item,
               ),
             };
           }
-          
+
           // Add new item
           return {
             items: [...state.items, { ...product, quantity }],
           };
         });
       },
-      
+
       /**
        * Remove item from cart completely
        * @param {string} productId - ID of product to remove
        */
       removeItem: (productId) => {
         set((state) => ({
-          items: state.items.filter(item => item.id !== productId),
+          items: state.items.filter((item) => item.id !== productId),
         }));
       },
-      
+
       /**
        * Update item quantity, size, and color
        * Removes item if quantity is 0 or negative
@@ -65,16 +67,21 @@ export const useCartStore = create(
        * @param {string} size - Optional size
        * @param {string} color - Optional color
        */
-      updateQuantity: (productId, quantity, size = undefined, color = undefined) => {
+      updateQuantity: (
+        productId,
+        quantity,
+        size = undefined,
+        color = undefined,
+      ) => {
         set((state) => {
           if (quantity <= 0) {
             return {
-              items: state.items.filter(item => item.id !== productId),
+              items: state.items.filter((item) => item.id !== productId),
             };
           }
-          
+
           return {
-            items: state.items.map(item => {
+            items: state.items.map((item) => {
               if (item.id === productId) {
                 const updates = { ...item, quantity };
                 if (size !== undefined) updates.size = size;
@@ -86,21 +93,21 @@ export const useCartStore = create(
           };
         });
       },
-      
+
       /**
        * Increment item quantity by 1
        * @param {string} productId - ID of product
        */
       incrementItem: (productId) => {
         set((state) => ({
-          items: state.items.map(item =>
+          items: state.items.map((item) =>
             item.id === productId
               ? { ...item, quantity: item.quantity + 1 }
-              : item
+              : item,
           ),
         }));
       },
-      
+
       /**
        * Decrement item quantity by 1
        * Removes item if quantity becomes 0
@@ -108,21 +115,23 @@ export const useCartStore = create(
        */
       decrementItem: (productId) => {
         set((state) => ({
-          items: state.items.map(item =>
-            item.id === productId && item.quantity > 1
-              ? { ...item, quantity: item.quantity - 1 }
-              : item
-          ).filter(item => item.quantity > 0),
+          items: state.items
+            .map((item) =>
+              item.id === productId && item.quantity > 1
+                ? { ...item, quantity: item.quantity - 1 }
+                : item,
+            )
+            .filter((item) => item.quantity > 0),
         }));
       },
-      
+
       /**
        * Clear all items from cart
        */
       clearCart: () => {
         set({ items: [] });
       },
-      
+
       /**
        * Get total number of items in cart
        * @returns {number} Total item count
@@ -131,7 +140,7 @@ export const useCartStore = create(
         const { items } = get();
         return items.reduce((total, item) => total + item.quantity, 0);
       },
-      
+
       /**
        * Get total price of all items in cart
        * @returns {number} Total price
@@ -139,10 +148,10 @@ export const useCartStore = create(
       getTotalPrice: () => {
         const { items } = get();
         return items.reduce((total, item) => {
-          return total + (item.price * item.quantity);
+          return total + item.price * item.quantity;
         }, 0);
       },
-      
+
       /**
        * Check if product is in cart
        * @param {string} productId - ID of product
@@ -150,9 +159,9 @@ export const useCartStore = create(
        */
       isInCart: (productId) => {
         const { items } = get();
-        return items.some(item => item.id === productId);
+        return items.some((item) => item.id === productId);
       },
-      
+
       /**
        * Get specific item from cart
        * @param {string} productId - ID of product
@@ -160,9 +169,9 @@ export const useCartStore = create(
        */
       getItem: (productId) => {
         const { items } = get();
-        return items.find(item => item.id === productId);
+        return items.find((item) => item.id === productId);
       },
-      
+
       /**
        * Set pending product to add after login
        * @param {Object} product - Product to add after login
@@ -171,14 +180,14 @@ export const useCartStore = create(
       setPendingProduct: (product, quantity = 1) => {
         set({ pendingProduct: { product, quantity } });
       },
-      
+
       /**
        * Clear pending product
        */
       clearPendingProduct: () => {
         set({ pendingProduct: null });
       },
-      
+
       /**
        * Add pending product to cart (called after login)
        * @returns {boolean} Whether product was added
@@ -194,10 +203,9 @@ export const useCartStore = create(
       },
     }),
     {
-      name: 'iqra-fashion-cart', // localStorage key
+      name: "green-basket-cart", // localStorage key
       // Only persist items array
       partialize: (state) => ({ items: state.items }),
-    }
-  )
+    },
+  ),
 );
-

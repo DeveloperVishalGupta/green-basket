@@ -1,7 +1,7 @@
-import streamifier from 'streamifier';
-import { cloudinary } from '../config/cloudinary.js';
-import Category from '../models/Category.js';
-import Product from '../models/Product.js';
+import streamifier from "streamifier";
+import { cloudinary } from "../config/cloudinary.js";
+import Category from "../models/Category.js";
+import Product from "../models/Product.js";
 
 /**
  * Category Controller
@@ -21,31 +21,34 @@ class CategoryController {
 
       // Filter by parent (top-level or subcategories)
       if (parent !== undefined) {
-        query.parent = parent === 'null' || parent === '' ? null : parent;
+        query.parent = parent === "null" || parent === "" ? null : parent;
       }
 
       // Include inactive categories (admin only)
-      if (!includeInactive || includeInactive !== 'true') {
+      if (!includeInactive || includeInactive !== "true") {
         query.isActive = true;
       }
 
       const categories = await Category.find(query)
-        .populate('parent', 'name slug')
+        .populate("parent", "name slug")
         .sort({ displayOrder: 1, name: 1 });
 
       // Add product count for each category
       const categoriesWithCount = await Promise.all(
         categories.map(async (category) => {
           const productCount = await Product.countDocuments({
-            category: category._id,
+            $or: [{ category: category._id }, { categories: category._id }],
             isActive: true,
           });
+          console.log(
+            `Category: ${category.name}, Product Count: ${productCount}`,
+          );
 
           return {
             ...category.toObject(),
             productCount,
           };
-        })
+        }),
       );
 
       res.json({
@@ -53,10 +56,10 @@ class CategoryController {
         data: categoriesWithCount,
       });
     } catch (error) {
-      console.error('Get categories error:', error);
+      console.error("Get categories error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch categories',
+        message: "Failed to fetch categories",
         error: error.message,
       });
     }
@@ -72,13 +75,13 @@ class CategoryController {
       const { slug } = req.params;
 
       const category = await Category.findOne({ slug, isActive: true })
-        .populate('parent', 'name slug')
-        .populate('subcategories');
+        .populate("parent", "name slug")
+        .populate("subcategories");
 
       if (!category) {
         return res.status(404).json({
           success: false,
-          message: 'Category not found',
+          message: "Category not found",
         });
       }
 
@@ -96,10 +99,10 @@ class CategoryController {
         },
       });
     } catch (error) {
-      console.error('Get category error:', error);
+      console.error("Get category error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch category',
+        message: "Failed to fetch category",
         error: error.message,
       });
     }
@@ -115,13 +118,13 @@ class CategoryController {
       const { id } = req.params;
 
       const category = await Category.findById(id)
-        .populate('parent', 'name slug')
-        .populate('subcategories');
+        .populate("parent", "name slug")
+        .populate("subcategories");
 
       if (!category) {
         return res.status(404).json({
           success: false,
-          message: 'Category not found',
+          message: "Category not found",
         });
       }
 
@@ -130,10 +133,10 @@ class CategoryController {
         data: category,
       });
     } catch (error) {
-      console.error('Get category by ID error:', error);
+      console.error("Get category by ID error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch category',
+        message: "Failed to fetch category",
         error: error.message,
       });
     }
@@ -154,15 +157,15 @@ class CategoryController {
           // Upload to Cloudinary using stream
           const uploadStream = cloudinary.uploader.upload_stream(
             {
-              folder: 'iqra-fashion/categories',
+              folder: "iqra-fashion/categories",
               transformation: [
-                { width: 500, height: 500, crop: 'limit' },
-                { quality: 'auto:good' },
+                { width: 500, height: 500, crop: "limit" },
+                { quality: "auto:good" },
               ],
             },
             async (error, result) => {
               if (error) {
-                console.error('Cloudinary upload error:', error);
+                console.error("Cloudinary upload error:", error);
                 return res.status(400).json({
                   success: false,
                   message: error.message,
@@ -183,24 +186,27 @@ class CategoryController {
 
                 return res.status(201).json({
                   success: true,
-                  message: 'Category created successfully',
+                  message: "Category created successfully",
                   data: category,
                 });
               } catch (createError) {
-                console.error('Create category after upload error:', createError);
+                console.error(
+                  "Create category after upload error:",
+                  createError,
+                );
                 return res.status(400).json({
                   success: false,
                   message: createError.message,
                   error: createError.message,
                 });
               }
-            }
+            },
           );
 
           // Pipe the buffer to Cloudinary
           streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
         } catch (uploadError) {
-          console.error('Image upload error:', uploadError);
+          console.error("Image upload error:", uploadError);
           return res.status(400).json({
             success: false,
             message: uploadError.message,
@@ -213,12 +219,12 @@ class CategoryController {
 
         res.status(201).json({
           success: true,
-          message: 'Category created successfully',
+          message: "Category created successfully",
           data: category,
         });
       }
     } catch (error) {
-      console.error('Create category error:', error);
+      console.error("Create category error:", error);
       res.status(400).json({
         success: false,
         message: error.message,
@@ -241,7 +247,7 @@ class CategoryController {
       if (!category) {
         return res.status(404).json({
           success: false,
-          message: 'Category not found',
+          message: "Category not found",
         });
       }
 
@@ -258,18 +264,18 @@ class CategoryController {
           // Upload new image to Cloudinary using stream
           const uploadStream = cloudinary.uploader.upload_stream(
             {
-              folder: 'iqra-fashion/categories',
+              folder: "iqra-fashion/categories",
               transformation: [
-                { width: 500, height: 500, crop: 'limit' },
-                { quality: 'auto:good' },
+                { width: 500, height: 500, crop: "limit" },
+                { quality: "auto:good" },
               ],
             },
             async (error, result) => {
               if (error) {
-                console.error('Cloudinary upload error:', error);
+                console.error("Cloudinary upload error:", error);
                 return res.status(400).json({
                   success: false,
-                  message: 'Failed to upload image 3',
+                  message: "Failed to upload image 3",
                   error: error.message,
                 });
               }
@@ -289,19 +295,19 @@ class CategoryController {
 
               res.json({
                 success: true,
-                message: 'Category updated successfully',
+                message: "Category updated successfully",
                 data: category,
               });
-            }
+            },
           );
 
           // Pipe the buffer to Cloudinary
           streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
         } catch (uploadError) {
-          console.error('Image upload error:', uploadError);
+          console.error("Image upload error:", uploadError);
           return res.status(400).json({
             success: false,
-            message: 'Failed to upload image 4',
+            message: "Failed to upload image 4",
             error: uploadError.message,
           });
         }
@@ -314,15 +320,15 @@ class CategoryController {
 
         res.json({
           success: true,
-          message: 'Category updated successfully',
+          message: "Category updated successfully",
           data: category,
         });
       }
     } catch (error) {
-      console.error('Update category error:', error);
+      console.error("Update category error:", error);
       res.status(400).json({
         success: false,
-        message: 'Failed to update category',
+        message: "Failed to update category",
         error: error.message,
       });
     }
@@ -342,7 +348,7 @@ class CategoryController {
       if (!category) {
         return res.status(404).json({
           success: false,
-          message: 'Category not found',
+          message: "Category not found",
         });
       }
 
@@ -371,7 +377,7 @@ class CategoryController {
         try {
           await cloudinary.uploader.destroy(category.image.publicId);
         } catch (cloudinaryError) {
-          console.error('Cloudinary delete error:', cloudinaryError);
+          console.error("Cloudinary delete error:", cloudinaryError);
           // Continue with category deletion even if image deletion fails
         }
       }
@@ -380,13 +386,13 @@ class CategoryController {
 
       res.json({
         success: true,
-        message: 'Category deleted successfully',
+        message: "Category deleted successfully",
       });
     } catch (error) {
-      console.error('Delete category error:', error);
+      console.error("Delete category error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to delete category',
+        message: "Failed to delete category",
         error: error.message,
       });
     }

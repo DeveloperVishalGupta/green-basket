@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import CategoryCard from '@/components/home/CategoryCard';
-import BottomNav from '@/components/layout/BottomNav';
-import { useCategories } from '@/hooks/useCategories';
-import { ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
-import { Alert, Input, Spin } from 'antd';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import CategoryCard from "@/components/home/CategoryCard";
+import BottomNav from "@/components/layout/BottomNav";
+import { useCategories } from "@/hooks/useCategories";
+import { ArrowLeftOutlined, SearchOutlined } from "@ant-design/icons";
+import { Alert, Input, Spin } from "antd";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 /**
  * Categories Page
@@ -14,13 +14,13 @@ import { useState } from 'react';
  */
 export default function CategoriesPage() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const { data, isLoading, error } = useCategories();
 
   const categories = data?.data || [];
-  
-  const filteredCategories = categories.filter(cat =>
-    cat.name.toLowerCase().includes(searchQuery.toLowerCase())
+
+  const filteredCategories = categories.filter((cat) =>
+    cat.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -31,30 +31,30 @@ export default function CategoriesPage() {
           <div className="flex w-full items-center gap-3 mb-3">
             <button
               onClick={() => router.back()}
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-all hover:scale-105"
-            >
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-all hover:scale-105">
               <ArrowLeftOutlined className="text-xl" />
             </button>
             <div className="flex-1">
               <h1 className="text-2xl font-bold bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                Shop by Category 
+                Shop by Category
               </h1>
-              <p className="text-sm text-gray-600">{filteredCategories.length} categories available</p>
+              <p className="text-sm text-gray-600">
+                {filteredCategories.length} categories available
+              </p>
             </div>
           </div>
-          <div className='w-1/2 flex'>
-         {/* Search Bar */}
-          <Input
-            size="large"
-            placeholder="Search categories..."
-            prefix={<SearchOutlined className="text-emerald-600" />}
-            className="rounded-xl border-2 border-gray-200 w-1/2 hover:border-emerald-400 focus:border-emerald-500"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            allowClear
-          />
+          <div className="w-1/2 flex">
+            {/* Search Bar */}
+            <Input
+              size="large"
+              placeholder="Search categories..."
+              prefix={<SearchOutlined className="text-emerald-600" />}
+              className="rounded-xl border-2 border-gray-200 w-1/2 hover:border-emerald-400 focus:border-emerald-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              allowClear
+            />
           </div>
-        
         </div>
       </header>
 
@@ -79,18 +79,21 @@ export default function CategoriesPage() {
             <div className="bg-linear-to-br from-gray-100 to-gray-200 rounded-3xl p-12 inline-block mb-6">
               <div className="text-6xl">🔍</div>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">No Categories Found</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              No Categories Found
+            </h3>
             <p className="text-gray-600">
-              {searchQuery ? 'Try a different search term' : 'No categories available'}
+              {searchQuery
+                ? "Try a different search term"
+                : "No categories available"}
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6">
             {filteredCategories.map((category) => (
-              <div 
+              <div
                 key={category._id}
-                className="bg-white flex justify-center items-center rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden py-3 border-slate-100"
-              >
+                className="bg-white flex justify-center items-center rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden py-3 border-slate-100">
                 <CategoryCard category={category} />
               </div>
             ))}

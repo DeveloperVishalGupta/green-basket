@@ -6,32 +6,22 @@ import Header from "@/components/layout/Header";
 import FilterSidebar from "@/components/products/FilterSidebar";
 import { useProducts } from "@/hooks/useProducts";
 import { useCategories } from "@/services/categories";
-import { useCartStore } from "@/store/cartStore";
 import { CloseOutlined, InboxOutlined } from "@ant-design/icons";
 import { Button, Drawer, Spin } from "antd";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";
 
 function ProductsContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category");
   const searchParam = searchParams.get("search");
-  const { getTotalItems } = useCartStore();
-  const cartCount = getTotalItems();
 
-  const { data, isLoading, error } = useProducts();
+  const { data } = useProducts();
   const products = data?.data || [];
-
-  const {
-    data: categoriesData,
-    isLoading: categoriesLoading,
-    error: categoriesError,
-    refetch: refetchCategories,
-  } = useCategories({ enabled: true });
+  const { data: categoriesData } = useCategories({ enabled: true });
 
   const [selectedCategories, setSelectedCategories] = useState(
     categoryParam ? [categoryParam] : [],
@@ -46,38 +36,17 @@ function ProductsContent() {
     bestSelling: false,
     inStock: false,
   });
-
-  // Compute dynamic min/max/mid points for prices from loaded products
-  const productPrices = products
-    .map((p) => Number(p.price || 0))
-    .filter((v) => !isNaN(v));
-  const minPrice = productPrices.length ? Math.min(...productPrices) : 0;
-  const maxPrice = productPrices.length ? Math.max(...productPrices) : 5000;
-  const range = Math.max(0, maxPrice - minPrice);
-  const mid1 = Math.round(minPrice + range / 3);
-  const mid2 = Math.round(minPrice + (2 * range) / 3);
-  const priceMarks = {
-    [Math.round(minPrice)]: `₹${Math.round(minPrice)}`,
-    [mid1]: `₹${mid1}`,
-    [mid2]: `₹${mid2}`,
-    [Math.round(maxPrice)]: `₹${Math.round(maxPrice)}`,
-  };
-
-  // Initialize slider to full range when products first load (only if still defaults)
-  useEffect(() => {
-    if (!productPrices.length) return;
-    const isDefault = priceRange[0] === 0 && priceRange[1] === 5000;
-    if (isDefault) setPriceRange([Math.round(minPrice), Math.round(maxPrice)]);
-  }, [products]);
-
+  console.log("Products:", products);
   const filteredProducts = products.filter((product) => {
     // categories[] is an array of populated objects or ObjectId strings
-    const productCategoryIds = (product.categories || []).map(
-      (c) => (typeof c === "object" ? c._id || c.id : c)?.toString()
+    const productCategoryIds = (product.categories || []).map((c) =>
+      (typeof c === "object" ? c._id || c.id : c)?.toString(),
     );
     const matchesCategory =
       selectedCategories.length === 0 ||
-      selectedCategories.some((sel) => productCategoryIds.includes(sel?.toString()));
+      selectedCategories.some((sel) =>
+        productCategoryIds.includes(sel?.toString()),
+      );
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -103,13 +72,29 @@ function ProductsContent() {
       matchesInStock
     );
   });
+  console.log("Filtered Products:", filteredProducts);
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
+    console.log("Sorting by:", sortBy);
+    console.log("Sorting by:", a);
     switch (sortBy) {
       case "price-low":
-        return a.price - b.price;
+        const minpriceA = Math.min(
+          ...(a.variants || []).map((v) => v.price ?? Infinity),
+        );
+        const minpriceB = Math.min(
+          ...(b.variants || []).map((v) => v.price ?? Infinity),
+        );
+        return minpriceA - minpriceB;
+      // return a.price - b.price;
       case "price-high":
-        return b.price - a.price;
+        const maxpriceA = Math.min(
+          ...(a.variants || []).map((v) => v.price ?? -Infinity),
+        );
+        const maxpriceB = Math.min(
+          ...(b.variants || []).map((v) => v.price ?? -Infinity),
+        );
+        return maxpriceB - maxpriceA;
       case "name":
         return a.name.localeCompare(b.name);
       case "fresh":
@@ -181,11 +166,6 @@ function ProductsContent() {
                 setSearchQuery={setSearchQuery}
                 selectedCategories={selectedCategories}
                 setSelectedCategories={setSelectedCategories}
-                priceRange={priceRange}
-                setPriceRange={setPriceRange}
-                priceMin={Math.round(minPrice)}
-                priceMax={Math.round(maxPrice)}
-                priceMarks={priceMarks}
                 sortBy={sortBy}
                 setSortBy={setSortBy}
                 groceryFilters={groceryFilters}
@@ -255,11 +235,6 @@ function ProductsContent() {
           setSearchQuery={setSearchQuery}
           selectedCategories={selectedCategories}
           setSelectedCategories={setSelectedCategories}
-          priceRange={priceRange}
-          setPriceRange={setPriceRange}
-          priceMin={Math.round(minPrice)}
-          priceMax={Math.round(maxPrice)}
-          priceMarks={priceMarks}
           sortBy={sortBy}
           setSortBy={setSortBy}
           groceryFilters={groceryFilters}

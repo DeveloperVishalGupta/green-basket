@@ -17,33 +17,33 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title:
-    "Apna Bazaar - Fresh Vegetables & Fruits Delivered Daily | Best Prices",
+    "Green Basket - Fresh Vegetables & Fruits Delivered Daily | Best Prices",
   description:
     "Shop fresh, organic vegetables and fruits delivered daily from farms. Best prices, quality guaranteed, same-day delivery available. 100% fresh produce or money back!",
   keywords:
     "fresh vegetables online, fruits delivery, organic produce, online grocery shopping, farm fresh, same-day delivery, India",
-  authors: [{ name: "Apna Bazaar Team" }],
-  creator: "Apna Bazaar",
-  publisher: "Apna Bazaar",
+  authors: [{ name: "Green Basket Team" }],
+  creator: "Green Basket",
+  publisher: "Green Basket",
   openGraph: {
-    title: "Apna Bazaar - Fresh Vegetables & Fruits Delivered Daily",
+    title: "Green Basket - Fresh Vegetables & Fruits Delivered Daily",
     description:
       "Buy fresh vegetables and fruits online with same-day delivery. 100% farm fresh produce guaranteed!",
     type: "website",
     url: process.env.NEXT_PUBLIC_APP_URL || "https://apnabazaar.com",
-    siteName: "Apna Bazaar",
+    siteName: "Green Basket",
     images: [
       {
         url: `${process.env.NEXT_PUBLIC_APP_URL || "https://apnabazaar.com"}/og-image.jpg`,
         width: 1200,
         height: 630,
-        alt: "Apna Bazaar - Fresh Vegetables & Fruits",
+        alt: "Green Basket - Fresh Vegetables & Fruits",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Apna Bazaar - Fresh Vegetables & Fruits",
+    title: "Green Basket - Fresh Vegetables & Fruits",
     description: "Fresh produce delivered to your doorstep daily",
     images: [
       `${process.env.NEXT_PUBLIC_APP_URL || "https://apnabazaar.com"}/twitter-image.jpg`,
@@ -62,7 +62,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head></head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        className={`${geistSans.variable} ${geistMono.variable} antialiased   `}>
         <QueryProvider>
           <AuthProvider>
             <AntdRegistry>

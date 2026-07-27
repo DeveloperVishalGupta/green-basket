@@ -27,7 +27,6 @@ import {
   Tag,
 } from "antd";
 import NextImage from "next/image";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import CreateUpdateProductModal from "./create-update-product-modal";
 import ViewProductModal from "./view-product-modal";
@@ -59,7 +58,7 @@ export default function AdminProducts() {
         ...prev,
         search,
       }));
-    }, 500); // 500ms debounce
+    }, 800); // 800ms debounce
 
     return () => clearTimeout(timer);
   }, [search]);
@@ -226,13 +225,7 @@ export default function AdminProducts() {
       dataIndex: "name",
       key: "name",
       render: (name, record) => {
-        return (
-          <Link
-            href={`/products/${record.slug}`}
-            className="text-blue-600 hover:underline">
-            {name}
-          </Link>
-        );
+        return <span>{name}</span>;
       },
     },
     {
