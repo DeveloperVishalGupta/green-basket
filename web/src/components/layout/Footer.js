@@ -16,9 +16,9 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>
-            <h3 className="text-white text-xl font-bold mb-4">Apna Bazaar</h3>
+            <h3 className="text-white text-xl font-bold mb-4">Green Basket</h3>
             <p className="text-sm mb-4">
-              Your destination for the latest fashion trends and timeless classics.
+              Your destination for fresh vegetables, fruits, and daily grocery essentials.
             </p>
             <div className="flex gap-4">
               <a
@@ -96,7 +96,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm">
-            © {currentYear} Apna Bazaar. All rights reserved.
+            © {currentYear} Green Basket. All rights reserved.
           </p>
           <div className="flex gap-6">
             {FOOTER_LINKS.legal.map((link) => (

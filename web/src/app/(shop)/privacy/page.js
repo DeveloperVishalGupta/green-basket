@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 /**
  * Privacy Policy Page
- * Privacy policy and data protection information for Apna Bazaar
+ * Privacy policy and data protection information for Green Basket
  */
 export default function PrivacyPage() {
     const router = useRouter();
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
                     <section className="mb-8">
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">Our Commitment to Your Privacy</h2>
                         <p className="text-gray-700 leading-relaxed">
-                            At Apna Bazaar, we are committed to protecting your privacy and ensuring the security of your 
+                            At Green Basket, we are committed to protecting your privacy and ensuring the security of your 
                             personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard 
                             your information when you visit our website or use our services. Please read this policy carefully.
                         </p>
@@ -228,7 +228,7 @@ export default function PrivacyPage() {
                             </div>
                             
                             <p className="leading-relaxed mt-4">
-                                To exercise these rights, please contact us at <strong>privacy@iqrafashion.com</strong>
+                                To exercise these rights, please contact us at <strong>privacy@greenbasket.com</strong>
                             </p>
                         </div>
                     </section>
@@ -290,8 +290,8 @@ export default function PrivacyPage() {
                                 please contact us:
                             </p>
                             <div className="bg-gray-50 p-4 rounded-lg mt-4">
-                                <p className="font-semibold text-gray-900">Privacy Team - Apna Bazaar</p>
-                                <p className="text-gray-700 mt-2">Email: privacy@iqrafashion.com</p>
+                                <p className="font-semibold text-gray-900">Privacy Team - Green Basket</p>
+                                <p className="text-gray-700 mt-2">Email: privacy@greenbasket.com</p>
                                 <p className="text-gray-700">Phone: +91 XXXXX XXXXX</p>
                                 <p className="text-gray-700">Address: [Your Business Address]</p>
                                 <p className="text-gray-700 mt-2">Response Time: We aim to respond within 48 hours</p>
@@ -303,7 +303,7 @@ export default function PrivacyPage() {
                     <section className="border-t border-gray-200 pt-6">
                         <div className="bg-emerald-50 p-4 rounded-lg">
                             <p className="text-sm text-gray-700">
-                                <strong>Your Consent:</strong> By using Apna Bazaar's Platform, you acknowledge that you have 
+                                <strong>Your Consent:</strong> By using Green Basket's Platform, you acknowledge that you have 
                                 read, understood, and agree to the collection, use, and disclosure of your information as 
                                 described in this Privacy Policy.
                             </p>

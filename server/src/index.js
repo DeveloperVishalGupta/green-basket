@@ -98,7 +98,7 @@ app.use(cookieParser()); // Parse cookies
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Apna Bazaar API is running",
+    message: "Green Basket API is running",
     version: "1.0.0",
     endpoints: {
       auth: "/api/auth",

@@ -1,5 +1,5 @@
 /**
- * Application-wide constants for Apna Bazaar
+ * Application-wide constants for Green Basket
  * Vegetable & Fruits E-Commerce Platform
  */
 
@@ -246,27 +246,27 @@ export const PROMO_MESSAGES = [
  * Local storage keys
  */
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: "iqra_auth_token",
-  CART: "iqra_cart",
-  WISHLIST: "iqra_wishlist",
-  THEME: "iqra_theme",
+  AUTH_TOKEN: "green_basket_auth_token",
+  CART: "green_basket_cart",
+  WISHLIST: "green_basket_wishlist",
+  THEME: "green_basket_theme",
 };
 
 /**
  * Social media links
  */
 export const SOCIAL_LINKS = {
-  FACEBOOK: "https://facebook.com/iqrafashion",
-  INSTAGRAM: "https://instagram.com/iqrafashion",
-  TWITTER: "https://twitter.com/iqrafashion",
-  PINTEREST: "https://pinterest.com/iqrafashion",
+  FACEBOOK: "https://facebook.com/greenbasket",
+  INSTAGRAM: "https://instagram.com/greenbasket",
+  TWITTER: "https://twitter.com/greenbasket",
+  PINTEREST: "https://pinterest.com/greenbasket",
 };
 
 /**
  * Contact information
  */
 export const CONTACT_INFO = {
-  EMAIL: "info@iqrafashion.com",
+  EMAIL: "support@greenbasket.com",
   PHONE: "+1 (234) 567-8900",
   ADDRESS: "123 Fashion Street, New York, NY 10001",
 };

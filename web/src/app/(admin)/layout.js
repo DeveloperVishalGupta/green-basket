@@ -151,7 +151,7 @@ export default function AdminLayout({ children }) {
         }}
       >
         <div className="flex items-center justify-center h-16 text-white text-xl font-bold border-b border-gray-800">
-          {collapsed ? 'AB' : 'Apna Bazaar'}
+          {collapsed ? 'GB' : 'Green Basket'}
         </div>
         <Menu
           theme="dark"

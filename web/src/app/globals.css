@@ -4,7 +4,7 @@
   --background: #f8fafc;
   --foreground: #1f2937;
 
-  /* Apna Bazaar Color Scheme */
+  /* Green Basket Color Scheme */
   --primary: #16a34a; /* Fresh Green */
   --secondary: #22c55e; /* Light Green */
   --accent: #facc15; /* Yellow */
@@ -37,7 +37,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Apna Bazaar Custom Utilities */
+/* Green Basket Custom Utilities */
 .btn-primary {
   @apply bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition;
 }

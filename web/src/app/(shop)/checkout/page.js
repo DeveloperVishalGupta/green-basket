@@ -328,7 +328,7 @@ export default function CheckoutPage() {
         key: keyId,
         amount: amount,
         currency: currency,
-        name: "Iqra Fashion",
+        name: "Green Basket",
         description: `Order Payment - ₹${(amount / 100).toFixed(2)}`,
         order_id: razorpayOrderId,
         handler: async function (response) {
@@ -752,7 +752,7 @@ export default function CheckoutPage() {
                         setSelectedDeliveryDate(opt.id);
                         setSelectedDeliverySlot(null);
                       }}
-                      className={`flex-shrink-0 snap-start min-w-[110px] md:min-w-0 rounded-xl border-2 p-3 transition-all text-center font-medium ${
+                      className={`shrink-0 snap-start min-w-27.5 md:min-w-0 rounded-xl border-2 p-3 transition-all text-center font-medium ${
                         selectedDeliveryDate === opt.id
                           ? "border-green-600 bg-green-50 text-green-700 shadow-md"
                           : "border-gray-200 hover:border-green-300 text-gray-700"
@@ -931,7 +931,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-lime-50 rounded-2xl border border-green-200 p-6 shadow-sm">
+                <div className="bg-linear-to-br from-green-50 via-emerald-50 to-lime-50 rounded-2xl border border-green-200 p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-5">
                     <h3 className="text-lg font-bold text-gray-900">
                       Payment Method

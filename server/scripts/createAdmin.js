@@ -16,7 +16,7 @@ async function createAdmin() {
     const adminData = {
       firstName: 'Admin',
       lastName: 'User',
-      email: 'admin@iqrafashion.com',
+      email: 'admin@greenbasket.com',
       password: 'admin123456',
       phone: '1234567890',
       role: 'admin',

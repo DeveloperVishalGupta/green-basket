@@ -1,10 +1,10 @@
-# Apna Bazaar - E-Commerce Platform
+# Green Basket - E-Commerce Platform
 
-A modern e-commerce fashion platform built with Next.js 16, React 19, and Tailwind CSS v4 for the frontend, and Node.js, Express, and MongoDB for the backend.
+A modern e-commerce grocery platform built with Next.js 16, React 19, and Tailwind CSS v4 for the frontend, and Node.js, Express, and MongoDB for the backend.
 ## 📁 Project Structure
 
 ```
-iqra-fashion/
+green-basket/
 ├── web/              # Frontend (Next.js 16)
 │   ├── src/
 │   │   ├── app/      # Next.js App Router pages
@@ -49,7 +49,7 @@ Before you begin, ensure you have installed:
 
 ```bash
 git clone <repository-url>
-cd iqra-fashion
+cd green-basket
 ```
 
 ### 2. Frontend Setup
@@ -82,7 +82,7 @@ cp .env.example .env
 
 # Edit .env with your configuration:
 # PORT=5000
-# MONGODB_URI=mongodb://localhost:27017/iqra-fashion
+# MONGODB_URI=mongodb://localhost:27017/green-basket
 # JWT_SECRET=your-secret-key-here
 # CLIENT_URL=http://localhost:3000
 ```
@@ -123,7 +123,7 @@ npm start
 ## 📁 Project Structure
 
 ```
-iqra-fashion/
+green-basket/
 ├── src/
 │   ├── app/              # Next.js pages (App Router)
 │   ├── components/       # React components
@@ -212,7 +212,7 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
 ### Backend (server/.env)
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/iqra-fashion
+MONGODB_URI=mongodb://localhost:27017/green-basket
 JWT_SECRET=your-secret-key
 CLIENT_URL=http://localhost:3000
 ```

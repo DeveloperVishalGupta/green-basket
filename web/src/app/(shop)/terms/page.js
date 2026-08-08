@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 /**
  * Terms & Conditions Page
- * Legal terms and conditions for Apna Bazaar
+ * Legal terms and conditions for Green Basket
  */
 export default function TermsPage() {
     const router = useRouter();
@@ -39,9 +39,9 @@ export default function TermsPage() {
 
                     {/* Introduction */}
                     <section className="mb-8">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to Apna Bazaar</h2>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to Green Basket</h2>
                         <p className="text-gray-700 leading-relaxed">
-                            These Terms and Conditions ("Terms") govern your access to and use of the Apna Bazaar website, 
+                            These Terms and Conditions ("Terms") govern your access to and use of the Green Basket website, 
                             mobile applications, and related services (collectively, the "Platform"). By accessing or using 
                             the Platform, you agree to be bound by these Terms. If you do not agree to these Terms, please 
                             do not use the Platform.
@@ -136,7 +136,7 @@ export default function TermsPage() {
                                 We are not liable for delays or non-delivery due to incorrect address details.
                             </p>
                             <p className="leading-relaxed">
-                                <strong>4.4 Risk of Loss:</strong> All items purchased from Apna Bazaar are shipped pursuant to 
+                                <strong>4.4 Risk of Loss:</strong> All items purchased from Green Basket are shipped pursuant to 
                                 a shipment contract. Risk of loss and title for items pass to you upon delivery to the carrier.
                             </p>
                         </div>
@@ -171,14 +171,14 @@ export default function TermsPage() {
                         <div className="space-y-3 text-gray-700">
                             <p className="leading-relaxed">
                                 <strong>6.1 Ownership:</strong> All content on the Platform, including text, graphics, logos, 
-                                images, and software, is the property of Apna Bazaar and protected by intellectual property laws.
+                                images, and software, is the property of Green Basket and protected by intellectual property laws.
                             </p>
                             <p className="leading-relaxed">
                                 <strong>6.2 Restrictions:</strong> You may not reproduce, distribute, modify, or create derivative 
                                 works of any content from the Platform without our express written permission.
                             </p>
                             <p className="leading-relaxed">
-                                <strong>6.3 Trademarks:</strong> Apna Bazaar and our logos are trademarks. You may not use 
+                                <strong>6.3 Trademarks:</strong> Green Basket and our logos are trademarks. You may not use 
                                 these marks without our prior written consent.
                             </p>
                         </div>
@@ -260,8 +260,8 @@ export default function TermsPage() {
                                 If you have any questions about these Terms, please contact us at:
                             </p>
                             <div className="bg-gray-50 p-4 rounded-lg mt-4">
-                                <p className="font-semibold text-gray-900">Apna Bazaar</p>
-                                <p className="text-gray-700 mt-2">Email: support@iqrafashion.com</p>
+                                <p className="font-semibold text-gray-900">Green Basket</p>
+                                <p className="text-gray-700 mt-2">Email: support@greenbasket.com</p>
                                 <p className="text-gray-700">Phone: +91 XXXXX XXXXX</p>
                                 <p className="text-gray-700">Address: [Your Business Address]</p>
                             </div>
@@ -271,7 +271,7 @@ export default function TermsPage() {
                     {/* Agreement */}
                     <section className="border-t border-gray-200 pt-6">
                         <p className="text-sm text-gray-600 italic">
-                            By using Apna Bazaar's Platform, you acknowledge that you have read, understood, and agree 
+                            By using Green Basket's Platform, you acknowledge that you have read, understood, and agree 
                             to be bound by these Terms and Conditions.
                         </p>
                     </section>

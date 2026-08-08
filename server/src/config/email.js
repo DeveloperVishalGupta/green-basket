@@ -26,7 +26,7 @@ const sesClient = new SESClient({
 const sendEmail = async ({ to, subject, htmlBody, textBody }) => {
   try {
     const params = {
-      Source: process.env.AWS_SES_FROM_EMAIL || 'noreply@iqrafashion.com',
+      Source: process.env.AWS_SES_FROM_EMAIL || 'noreply@greenbasket.com',
       Destination: {
         ToAddresses: [to],
       },
@@ -69,7 +69,7 @@ const sendEmail = async ({ to, subject, htmlBody, textBody }) => {
  * @param {string} userName - User's name
  */
 const sendOTPEmail = async (email, otp, userName = 'User') => {
-  const subject = 'Verify Your Email - Apna Bazaar';
+  const subject = 'Verify Your Email - Green Basket';
   
   const htmlBody = `
     <!DOCTYPE html>
@@ -88,8 +88,8 @@ const sendOTPEmail = async (email, otp, userName = 'User') => {
               <!-- Header -->
               <tr>
                 <td style="background: linear-gradient(135deg, #0F8A5F 0%, #0A6B47 100%); padding: 40px 20px; text-align: center;">
-                  <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">Iqra Fashion</h1>
-                  <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 14px;">Your Fashion Destination</p>
+                  <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">Green Basket</h1>
+                  <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 14px;">Your Fresh Grocery Destination</p>
                 </td>
               </tr>
               
@@ -98,7 +98,7 @@ const sendOTPEmail = async (email, otp, userName = 'User') => {
                 <td style="padding: 40px 30px;">
                   <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 24px;">Hello ${userName}!</h2>
                   <p style="margin: 0 0 20px 0; color: #666666; font-size: 16px; line-height: 1.5;">
-                    Thank you for registering with Iqra Fashion. To complete your registration, please verify your email address using the OTP code below:
+                    Thank you for registering with Green Basket. To complete your registration, please verify your email address using the OTP code below:
                   </p>
                   
                   <!-- OTP Box -->
@@ -117,7 +117,7 @@ const sendOTPEmail = async (email, otp, userName = 'User') => {
                   
                   <div style="margin: 30px 0; padding: 20px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
                     <p style="margin: 0; color: #856404; font-size: 14px;">
-                      <strong>Security Tip:</strong> Never share your OTP with anyone. Iqra Fashion will never ask for your OTP via phone or email.
+                      <strong>Security Tip:</strong> Never share your OTP with anyone. Green Basket will never ask for your OTP via phone or email.
                     </p>
                   </div>
                 </td>
@@ -127,10 +127,10 @@ const sendOTPEmail = async (email, otp, userName = 'User') => {
               <tr>
                 <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
                   <p style="margin: 0 0 10px 0; color: #666666; font-size: 14px;">
-                    Need help? Contact us at <a href="mailto:support@iqrafashion.com" style="color: #0F8A5F; text-decoration: none;">support@iqrafashion.com</a>
+                    Need help? Contact us at <a href="mailto:support@greenbasket.com" style="color: #0F8A5F; text-decoration: none;">support@greenbasket.com</a>
                   </p>
                   <p style="margin: 0; color: #999999; font-size: 12px;">
-                    © 2026 Iqra Fashion. All rights reserved.
+                    © 2026 Green Basket. All rights reserved.
                   </p>
                 </td>
               </tr>
@@ -146,7 +146,7 @@ const sendOTPEmail = async (email, otp, userName = 'User') => {
   const textBody = `
     Hello ${userName}!
     
-    Thank you for registering with Iqra Fashion.
+    Thank you for registering with Green Basket.
     
     Your OTP code is: ${otp}
     
@@ -154,9 +154,9 @@ const sendOTPEmail = async (email, otp, userName = 'User') => {
     
     If you didn't request this verification, please ignore this email.
     
-    Need help? Contact us at support@iqrafashion.com
+    Need help? Contact us at support@greenbasket.com
     
-    © 2026 Iqra Fashion. All rights reserved.
+    © 2026 Green Basket. All rights reserved.
   `;
   
   return await sendEmail({ to: email, subject, htmlBody, textBody });
@@ -192,7 +192,7 @@ const sendOrderConfirmationEmail = async (order, user) => {
       )
       .join('');
 
-    const subject = `Order Confirmation - #${order.orderNumber} | Iqra Fashion`;
+    const subject = `Order Confirmation - #${order.orderNumber} | Green Basket`;
     
     const htmlBody = `
       <!DOCTYPE html>
@@ -212,7 +212,7 @@ const sendOrderConfirmationEmail = async (order, user) => {
                 <tr>
                   <td style="background: linear-gradient(135deg, #0F8A5F 0%, #0A6B47 100%); padding: 40px 20px; text-align: center;">
                     <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">Order Confirmed!</h1>
-                    <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 16px;">Thank you for shopping with Iqra Fashion</p>
+                    <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 16px;">Thank you for shopping with Green Basket</p>
                   </td>
                 </tr>
                 
@@ -325,10 +325,10 @@ const sendOrderConfirmationEmail = async (order, user) => {
                 <tr>
                   <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
                     <p style="margin: 0 0 10px 0; color: #666666; font-size: 14px;">
-                      Questions? Contact us at <a href="mailto:support@iqrafashion.com" style="color: #0F8A5F; text-decoration: none;">support@iqrafashion.com</a>
+                      Questions? Contact us at <a href="mailto:support@greenbasket.com" style="color: #0F8A5F; text-decoration: none;">support@greenbasket.com</a>
                     </p>
                     <p style="margin: 10px 0; color: #999999; font-size: 12px;">
-                      © ${new Date().getFullYear()} Iqra Fashion. All rights reserved.
+                      © ${new Date().getFullYear()} Green Basket. All rights reserved.
                     </p>
                   </td>
                 </tr>
@@ -342,7 +342,7 @@ const sendOrderConfirmationEmail = async (order, user) => {
     `;
     
     const textBody = `
-      Order Confirmation - Iqra Fashion
+      Order Confirmation - Green Basket
       
       Hi ${user.firstName}!
       
@@ -356,9 +356,9 @@ const sendOrderConfirmationEmail = async (order, user) => {
       
       Track your order at: ${process.env.CLIENT_URL || 'http://localhost:3000'}/orders/${order._id}
       
-      Questions? Contact us at support@iqrafashion.com
+      Questions? Contact us at support@greenbasket.com
       
-      © ${new Date().getFullYear()} Iqra Fashion. All rights reserved.
+      © ${new Date().getFullYear()} Green Basket. All rights reserved.
     `;
     
     return await sendEmail({ 
@@ -381,7 +381,7 @@ const sendOrderConfirmationEmail = async (order, user) => {
  */
 const sendOrderShippedEmail = async (order, user, trackingInfo = {}) => {
   try {
-    const subject = `Your Order Has Shipped! - #${order.orderNumber} | Iqra Fashion`;
+    const subject = `Your Order Has Shipped! - #${order.orderNumber} | Green Basket`;
     
     const htmlBody = `
       <!DOCTYPE html>
@@ -478,10 +478,10 @@ const sendOrderShippedEmail = async (order, user, trackingInfo = {}) => {
                 <tr>
                   <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
                     <p style="margin: 0 0 10px 0; color: #666666; font-size: 14px;">
-                      Questions? Contact us at <a href="mailto:support@iqrafashion.com" style="color: #0F8A5F; text-decoration: none;">support@iqrafashion.com</a>
+                      Questions? Contact us at <a href="mailto:support@greenbasket.com" style="color: #0F8A5F; text-decoration: none;">support@greenbasket.com</a>
                     </p>
                     <p style="margin: 10px 0; color: #999999; font-size: 12px;">
-                      © ${new Date().getFullYear()} Iqra Fashion. All rights reserved.
+                      © ${new Date().getFullYear()} Green Basket. All rights reserved.
                     </p>
                   </td>
                 </tr>
@@ -495,7 +495,7 @@ const sendOrderShippedEmail = async (order, user, trackingInfo = {}) => {
     `;
     
     const textBody = `
-      Your Order Has Shipped! - Iqra Fashion
+      Your Order Has Shipped! - Green Basket
       
       Hi ${user.firstName}!
       
@@ -509,9 +509,9 @@ const sendOrderShippedEmail = async (order, user, trackingInfo = {}) => {
       
       View order details: ${process.env.CLIENT_URL || 'http://localhost:3000'}/orders/${order._id}
       
-      Questions? Contact us at support@iqrafashion.com
+      Questions? Contact us at support@greenbasket.com
       
-      © ${new Date().getFullYear()} Iqra Fashion. All rights reserved.
+      © ${new Date().getFullYear()} Green Basket. All rights reserved.
     `;
     
     return await sendEmail({ 

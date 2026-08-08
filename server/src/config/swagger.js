@@ -4,16 +4,16 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Apna Bazaar APIs',
+      title: 'Green Basket APIs',
       version: '1.0.0',
       description: `
-Apna Bazaar Backend API provides a comprehensive set of RESTful endpoints for managing products, categories, orders, customers, authentication, and administrative operations.
+Green Basket Backend API provides a comprehensive set of RESTful endpoints for managing products, categories, orders, customers, authentication, and administrative operations.
 
-This documentation serves as a complete reference for developers to integrate with the Apna Bazaar platform, enabling seamless access to inventory management, order processing, user authentication, and business operations.
+This documentation serves as a complete reference for developers to integrate with the Green Basket platform, enabling seamless access to inventory management, order processing, user authentication, and business operations.
 
 Use the "Authorize" button to authenticate protected endpoints with a valid JWT token.
 `,
-      // description: 'API Documentation for Apna Bazaar Backend',
+      // description: 'API Documentation for Green Basket Backend',
     },
     servers: [
       {

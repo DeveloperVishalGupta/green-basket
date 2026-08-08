@@ -542,9 +542,9 @@ export default function OrderDetailPage({ params }) {
                             📧 Email:
                           </span>
                           <a
-                            href="mailto:support@iqrafashion.com"
+                            href="mailto:support@greenbasket.com"
                             className="text-blue-600 hover:underline">
-                            support@iqrafashion.com
+                            support@greenbasket.com
                           </a>
                         </div>
                         <div className="flex items-center gap-2 text-xs">
@@ -561,7 +561,7 @@ export default function OrderDetailPage({ params }) {
 
                       <div className="flex gap-2">
                         <a
-                          href={`mailto:support@iqrafashion.com?subject=Refund Failed - Order ${order.orderNumber || order._id?.slice(-8).toUpperCase()}&body=Hello,%0A%0AMy refund has failed for the following order:%0A%0AOrder Number: ${order.orderNumber || order._id?.slice(-8).toUpperCase()}%0AOrder ID: ${order._id}%0ARefund Amount: ₹${order.refund.amount}%0A%0APlease help me process the refund manually.%0A%0AThank you.`}
+                          href={`mailto:support@greenbasket.com?subject=Refund Failed - Order ${order.orderNumber || order._id?.slice(-8).toUpperCase()}&body=Hello,%0A%0AMy refund has failed for the following order:%0A%0AOrder Number: ${order.orderNumber || order._id?.slice(-8).toUpperCase()}%0AOrder ID: ${order._id}%0ARefund Amount: ₹${order.refund.amount}%0A%0APlease help me process the refund manually.%0A%0AThank you.`}
                           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 px-3 rounded-lg text-center transition-colors">
                           📧 Email Support
                         </a>

@@ -51,7 +51,7 @@ export default function RazorpayCheckout({ orderId, amount, disabled = false }) 
         key: keyId,
         amount: amount,
         currency: currency,
-        name: 'Iqra Fashion',
+        name: 'Green Basket',
         description: `Order Payment`,
         order_id: razorpayOrderId,
         handler: async function (response) {

@@ -406,7 +406,7 @@ export default function TermsAndPoliciesPage() {
       //         If you have any questions about this Privacy Policy, please
       //         contact us at:
       //         <br />
-      //         <strong>Email:</strong> iqra.bangles.stores@gmail.com
+      //         <strong>Email:</strong> support@greenbasket.com
       //       </p>
       //     </section>
       //   </div>
@@ -825,7 +825,7 @@ export default function TermsAndPoliciesPage() {
     //         <p className="text-gray-700">
     //           For shipping-related queries, please contact:
     //           <br />
-    //           <strong>Email:</strong> iqra.bangles.stores@gmail.com
+    //           <strong>Email:</strong> support@greenbasket.com
     //         </p>
     //       </section>
     //     </div>
@@ -867,9 +867,9 @@ export default function TermsAndPoliciesPage() {
         </div>
 
         {/* Contact Box */}
-        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-6 border border-emerald-200 shadow-sm">
+        <div className="bg-linear-to-br from-emerald-50 to-teal-50 rounded-xl p-6 border border-emerald-200 shadow-sm">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
               <MailOutlined className="text-emerald-600 text-lg" />
             </div>
             <div>
@@ -883,7 +883,7 @@ export default function TermsAndPoliciesPage() {
             </div>
           </div>
           <a
-            href="mailto:iqra.bangles.stores@gmail.com"
+            href="mailto:support@greenbasket.com"
             className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm sm:text-base font-medium transition-all hover:shadow-lg">
             <MailOutlined />
             <span>Contact Support</span>

@@ -1,5 +1,5 @@
 /**
- * Utility functions for the Apna Bazaar application
+ * Utility functions for the Green Basket application
  */
 
 /**

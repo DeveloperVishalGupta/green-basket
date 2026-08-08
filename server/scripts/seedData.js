@@ -19,12 +19,12 @@ async function seedData() {
 
     // Create admin user
     console.log('👤 Creating users...');
-    let admin = await User.findOne({ email: 'admin@iqrafashion.com' });
+    let admin = await User.findOne({ email: 'admin@greenbasket.com' });
     if (!admin) {
       admin = await User.create({
         firstName: 'Admin',
         lastName: 'User',
-        email: 'admin@iqrafashion.com',
+        email: 'admin@greenbasket.com',
         password: 'admin123456',
         phone: '1234567890',
         role: 'admin',

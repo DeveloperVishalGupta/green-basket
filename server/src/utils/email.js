@@ -31,9 +31,9 @@ const sendOrderConfirmation = async (order, user) => {
     const emailHTML = generateOrderEmailTemplate(order, user);
 
     const mailOptions = {
-      from: `"Iqra Fashion" <${process.env.EMAIL_USER}>`,
+      from: `"Green Basket" <${process.env.EMAIL_USER}>`,
       to: user.email,
-      subject: `Order Confirmation #${order._id} - Iqra Fashion`,
+      subject: `Order Confirmation #${order._id} - Green Basket`,
       html: emailHTML,
     };
 
@@ -63,7 +63,7 @@ const sendOrderStatusUpdate = async (order, user, status) => {
     };
 
     const mailOptions = {
-      from: `"Iqra Fashion" <${process.env.EMAIL_USER}>`,
+      from: `"Green Basket" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: `Order Update - ${statusMessages[status]} #${order._id}`,
       html: generateStatusUpdateTemplate(order, user, status),
@@ -115,7 +115,7 @@ const generateOrderEmailTemplate = (order, user) => {
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%); padding: 30px; text-align: center;">
           <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Order Confirmed! 🎉</h1>
-          <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9;">Thank you for shopping with Iqra Fashion</p>
+          <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9;">Thank you for shopping with Green Basket</p>
         </div>
 
         <!-- Order Details -->
@@ -200,10 +200,10 @@ const generateOrderEmailTemplate = (order, user) => {
         <!-- Footer -->
         <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
           <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">
-            Need help? Contact us at <a href="mailto:support@iqrafashion.com" style="color: #10b981; text-decoration: none;">support@iqrafashion.com</a>
+            Need help? Contact us at <a href="mailto:support@greenbasket.com" style="color: #10b981; text-decoration: none;">support@greenbasket.com</a>
           </p>
           <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-            © ${new Date().getFullYear()} Iqra Fashion. All rights reserved.
+            © ${new Date().getFullYear()} Green Basket. All rights reserved.
           </p>
         </div>
       </div>

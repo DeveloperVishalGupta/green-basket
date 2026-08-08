@@ -17,7 +17,7 @@ export default function HelpCenterModal({ open, onClose }) {
   const { message } = App.useApp();
 
   const handleCopyEmail = () => {
-    navigator.clipboard.writeText("iqra.bangles.stores@gmail.com");
+    navigator.clipboard.writeText("support@greenbasket.com");
     message.success("Email copied to clipboard!");
   };
 
@@ -35,7 +35,7 @@ export default function HelpCenterModal({ open, onClose }) {
       }>
       <div className="py-4 space-y-6">
         {/* Welcome Message */}
-        <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-5 border border-emerald-200">
+        <div className="bg-linear-to-r from-emerald-50 to-green-50 rounded-xl p-5 border border-emerald-200">
           <h3 className="text-lg font-semibold text-emerald-800">
             Welcome to Green Basket Help Center 👋
           </h3>
@@ -167,7 +167,7 @@ export default function HelpCenterModal({ open, onClose }) {
         {/* Email Link Button */}
         <div className="pt-2">
           <a
-            href="mailto:iqra.bangles.stores@gmail.com"
+            href="mailto:support@greenbasket.com"
             className="block w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-center rounded-lg font-semibold transition-colors">
             Send Email
           </a>

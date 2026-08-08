@@ -1,7 +1,7 @@
 {
-  "name": "iqra-fashion-server",
+  "name": "green-basket-server",
   "version": "1.0.0",
-  "description": "Backend API for Apna Bazaar E-commerce Platform",
+  "description": "Backend API for Green Basket E-commerce Platform",
   "type": "module",
   "main": "src/index.js",
   "engines": {

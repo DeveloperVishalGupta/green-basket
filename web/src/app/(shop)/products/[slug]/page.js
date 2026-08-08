@@ -222,7 +222,7 @@ export default function ProductDetailPage({ params }) {
 
   const shareProduct = (platform) => {
     const url = window.location.href;
-    const text = `Check out ${product.name} at Apna Bazaar!`;
+    const text = `Check out ${product.name} at Green Basket!`;
 
     let shareUrl;
     switch (platform) {

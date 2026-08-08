@@ -164,7 +164,7 @@ function VerifyOTPContent() {
                             <span className="font-semibold text-[#0F8A5F]">📨 Contact Admin:</span>
                         </p>
                         <p className="text-sm text-gray-700 mb-2">
-                            Send an email to: <a href="mailto:iqra.bangles.stores@gmail.com" className="font-semibold text-blue-600 hover:underline">iqra.bangles.stores@gmail.com</a>
+                            Send an email to: <a href="mailto:support@greenbasket.com" className="font-semibold text-blue-600 hover:underline">support@greenbasket.com</a>
                         </p>
                         <p className="text-xs text-gray-500 mt-3 italic">
                             Include your email address and mobile number in your message to receive the OTP code
@@ -233,7 +233,7 @@ function VerifyOTPContent() {
                         </p>
                     </div>
                     <p className="text-xs text-gray-500">
-                        By continuing, you agree to receive notifications from Apna Bazaar
+                        By continuing, you agree to receive notifications from Green Basket
                     </p>
                 </div>
             </div>

@@ -1,6 +1,6 @@
-# Apna Bazaar Backend API
+# Green Basket Backend API
 
-Complete backend API for Apna Bazaar E-commerce Platform built with Node.js, Express, and MongoDB.
+Complete backend API for Green Basket E-commerce Platform built with Node.js, Express, and MongoDB.
 
 ## 🚀 Quick Start
 
@@ -661,7 +661,7 @@ npm start
 mongod
 
 # Connect string
-MONGODB_URI=mongodb://localhost:27017/iqra-fashion
+MONGODB_URI=mongodb://localhost:27017/green-basket
 ```
 
 **Option 2: MongoDB Atlas (Cloud)**
@@ -670,7 +670,7 @@ MONGODB_URI=mongodb://localhost:27017/iqra-fashion
 3. Get connection string
 4. Update `.env`:
 ```env
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/iqra-fashion?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/green-basket?retryWrites=true&w=majority
 ```
 
 ---
@@ -724,7 +724,7 @@ CLIENT_URL=https://your-frontend-domain.com
 
 **Heroku:**
 ```bash
-heroku create iqra-fashion-api
+heroku create green-basket-api
 git push heroku main
 heroku config:set MONGODB_URI=your_uri
 ```
@@ -742,7 +742,7 @@ heroku config:set MONGODB_URI=your_uri
 npm install --production
 # Use PM2 for process management
 npm install -g pm2
-pm2 start src/index.js --name iqra-api
+pm2 start src/index.js --name green-basket-api
 pm2 startup
 pm2 save
 ```

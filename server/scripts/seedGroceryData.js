@@ -346,7 +346,7 @@ async function seedGroceryData() {
       admin = await User.create({
         firstName: 'Admin',
         lastName: 'User',
-        email: 'admin@apnabazaar.com',
+        email: 'admin@greenbasket.com',
         password: 'admin123456',
         phone: '9999999999',
         role: 'admin',
