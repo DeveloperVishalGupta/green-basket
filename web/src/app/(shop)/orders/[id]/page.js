@@ -30,7 +30,6 @@ export default function OrderDetailPage({ params }) {
   // Fetch order from API
   const { data: orderData, isLoading, error } = useOrder(id);
   const order = orderData?.data;
-  console.log("Order Data:", order, orderData);
 
   // Mutation for refreshing refund status
   const refreshRefundMutation = useRefreshRefundStatus();
@@ -261,7 +260,6 @@ export default function OrderDetailPage({ params }) {
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-sm text-gray-600">
                         <span className="font-semibold">Qty:</span>{" "}
-                        {console.log(item.quantity, item)}
                         {`${item.quantity} ${item.unit || ""}`}
                       </span>
                       <div className="text-right">

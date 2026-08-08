@@ -70,7 +70,7 @@ export default function CartNotification({ product, onClose }) {
         <div className="p-4">
           <div className="flex items-start gap-3">
             {/* Success Icon */}
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
                 <CheckCircleOutlined className="text-xl text-emerald-600" />
               </div>
@@ -83,7 +83,7 @@ export default function CartNotification({ product, onClose }) {
               </h4>
               <div className="flex items-center gap-2">
                 {imageUrl && (
-                  <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-gray-100">
                     <Image
                       src={imageUrl}
                       alt={product.name}
@@ -96,9 +96,15 @@ export default function CartNotification({ product, onClose }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-900 line-clamp-1 font-medium">
                     {product.name}
+                    {product.selectedVariant?.label && (
+                      <span className="text-gray-500 font-normal">
+                        {" "}
+                        ({product.selectedVariant.label})
+                      </span>
+                    )}
                   </p>
                   <p className="text-sm font-bold text-emerald-600">
-                    {console.log(product)}₹{product.price}
+                    ₹{product.price}
                   </p>
                 </div>
               </div>
@@ -110,7 +116,7 @@ export default function CartNotification({ product, onClose }) {
                 setVisible(false);
                 setTimeout(() => onClose?.(), 300);
               }}
-              className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors">
+              className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors">
               <svg
                 className="w-5 h-5"
                 fill="none"

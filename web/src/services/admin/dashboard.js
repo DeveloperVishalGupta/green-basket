@@ -14,13 +14,9 @@ export const useAdminDashboard = (period) => {
         throw new Error("Period is required");
       }
 
-      const response = await api.get(
-        `api/admin/dashboard`,
-        {
-          params: { period },
-        }
-      );
-      console.log("Dashboard data:", response.data);
+      const response = await api.get(`api/admin/dashboard`, {
+        params: { period },
+      });
       return response.data.data;
     },
     enabled: !!period,

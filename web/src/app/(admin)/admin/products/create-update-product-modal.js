@@ -37,8 +37,6 @@ export default function CreateUpdateProductModal({
 
   const isEditMode = !!product;
 
-  console.log(open && isEditMode);
-
   // Fetch product details by ID when in edit mode
   const {
     data: productDetails,
@@ -74,7 +72,6 @@ export default function CreateUpdateProductModal({
    * Initialize form with product details in edit mode
    */
   useEffect(() => {
-    console.log({ open, isEditMode, productDetails });
     if (open && isEditMode && productDetails) {
       const initialValues = {
         ...productDetails,

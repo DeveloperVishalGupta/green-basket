@@ -31,7 +31,7 @@ export default function Header() {
       <div className="mx-auto max-w-7xl">
         {/* Main Header Row - Combined Layout */}
         <div className="px-3 py-2 md:px-6 md:py-3">
-          <div className="flex items-center gap-3 md:gap-4 mb-3">
+          <div className="flex items-center gap-3 md:gap-4">
             {/* Logo & Brand */}
             {/* <Link href="/" className="flex items-center gap-2 shrink-0">
               <div className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-xl bg-linear-to-br from-emerald-600 to-teal-600 shadow-lg">
@@ -59,6 +59,18 @@ export default function Header() {
             {/* Search Bar - Integrated */}
             <HeaderSearch />
 
+            {/* Order Status Badge - Only if has orders */}
+            {hasOrders && (
+              <button
+                onClick={() => router.push("/orders")}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-all shrink-0">
+                <ShoppingOutlined className="text-emerald-600" />
+                <span className="text-xs font-semibold text-emerald-700">
+                  My Orders
+                </span>
+              </button>
+            )}
+
             {/* Action Buttons */}
             <div className="flex gap-2 shrink-0">
               {/* Notification Bell */}
@@ -80,37 +92,6 @@ export default function Header() {
                 </Link>
               )}
             </div>
-          </div>
-
-          {/* Quick Actions Bar - Compact */}
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-            {/* Order Status Badge - Only if has orders */}
-            {hasOrders && (
-              <button
-                onClick={() => router.push("/orders")}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-all shrink-0">
-                <ShoppingOutlined className="text-emerald-600" />
-                <span className="text-xs font-semibold text-emerald-700">
-                  My Orders
-                </span>
-              </button>
-            )}
-
-            {/* Quick Links */}
-            {/* <Link
-              href="/categories"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-all shrink-0">
-              <FireOutlined className="text-orange-500 text-sm" />
-              <span className="text-xs font-medium text-gray-700">
-                Categories
-              </span>
-            </Link>
-            <Link
-              href="/products?tag=sale"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 hover:bg-red-100 transition-all shrink-0">
-              <span className="text-sm">🔥</span>
-              <span className="text-xs font-semibold text-red-600">Sale</span>
-            </Link> */}
           </div>
         </div>
       </div>

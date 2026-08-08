@@ -33,9 +33,11 @@ export default function CheckoutPage() {
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
 
   // Preselect address from query param if present, or default address, or first address
+  const addressList = user?.addresses || [];
+  const hasAddresses = addressList.length > 0;
   const addressIdFromQuery = searchParams?.get("addressId");
-  const defaultAddress = user?.addresses.find((add) => add.isDefault);
-  const firstAddress = user?.addresses?.[0];
+  const defaultAddress = addressList.find((add) => add.isDefault);
+  const firstAddress = addressList[0];
   const defaultAddressId =
     addressIdFromQuery || defaultAddress?._id || firstAddress?._id || null;
   const [selectedAddress, setSelectedAddress] = useState(defaultAddressId);
@@ -43,6 +45,13 @@ export default function CheckoutPage() {
   const [selectedDeliverySlot, setSelectedDeliverySlot] = useState(null);
   const [selectedDeliveryDate, setSelectedDeliveryDate] = useState(null);
   const [orderNotes, setOrderNotes] = useState("");
+
+  // Address currently shown/used at checkout: user's selection, else default, else first
+  const currentAddress =
+    addressList.find((a) => (a.id || a._id) === selectedAddress) ||
+    defaultAddress ||
+    firstAddress ||
+    null;
 
   // Generate next 5 delivery date options
   const dateOptions = (() => {
@@ -497,25 +506,53 @@ export default function CheckoutPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Delivery Address Section */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="flex items-center gap-2 text-2xl font-bold">
-                  <span>📍</span>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <span className="text-2xl">📍</span>
                   Delivery Address
                 </h2>
-
                 <div className="flex gap-2">
-                  <Button type="primary" icon={<PlusOutlined />} size="middle">
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      const couponParam = searchParams?.get("coupon");
+                      const url = couponParam
+                        ? `/addresses/add?coupon=${encodeURIComponent(couponParam)}`
+                        : "/addresses/add";
+                      router.push(url);
+                    }}>
                     Add Address
                   </Button>
-
-                  <Button size="middle">Manage</Button>
+                  {hasAddresses && (
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        const couponParam = searchParams?.get("coupon");
+                        const url = couponParam
+                          ? `/addresses?coupon=${encodeURIComponent(couponParam)}`
+                          : "/addresses";
+                        router.push(url);
+                      }}>
+                      Manage
+                    </Button>
+                  )}
                 </div>
               </div>
 
-              <div className="grid gap-3">
-                {user?.addresses
-                  ?.filter((item) => item.isDefault)
-                  ?.map((address) => {
+              {!hasAddresses ? (
+                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center">
+                  <p className="font-semibold text-gray-900">
+                    No delivery address added yet.
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Add a delivery address to continue with your order.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {[currentAddress].filter(Boolean).map((address) => {
                     const isSelected =
                       selectedAddress === (address.id || address._id);
 
@@ -625,7 +662,8 @@ export default function CheckoutPage() {
                       </div>
                     );
                   })}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Order Items Section */}

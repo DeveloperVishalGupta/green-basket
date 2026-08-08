@@ -10,6 +10,7 @@ import Notification from "../models/Notification.js";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
+import orderNotificationService from "../services/orderNotificationService.js";
 import { cancelShiprocketShipment } from "./shipmentController.js";
 
 /**
@@ -362,6 +363,22 @@ class OrderController {
             notificationError,
           );
           // Don't fail the order if notification fails
+        }
+
+        // Send WhatsApp order confirmation (customer) and new-order alert
+        // (vendor/admin). req.user is already the full user doc attached
+        // by the auth middleware, so no extra lookup is needed.
+        try {
+          await orderNotificationService.sendOrderWhatsAppNotifications(
+            order,
+            req.user,
+          );
+        } catch (whatsappError) {
+          console.error(
+            "❌ Failed to send WhatsApp order notifications:",
+            whatsappError,
+          );
+          // Don't fail the order if WhatsApp delivery fails
         }
 
         res.status(201).json({

@@ -127,6 +127,20 @@ export const authAPI = {
    * Refresh authentication token
    */
   refreshToken: () => apiClient.post("/api/auth/refresh"),
+
+  /**
+   * Send forgot password email
+   * @param {Object} data - { email }
+   */
+  forgotPassword: (data) => apiClient.post("/api/auth/forgot-password", data),
+
+  /**
+   * Reset password using reset token
+   * @param {string} token - Password reset token
+   * @param {Object} data - { password }
+   */
+  resetPassword: (token, data) =>
+    apiClient.post(`/api/auth/reset-password/${token}`, data),
 };
 
 /**

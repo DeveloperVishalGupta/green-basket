@@ -1,5 +1,6 @@
-import bcrypt from 'bcryptjs';
-import mongoose from 'mongoose';
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import mongoose from "mongoose";
 
 /**
  * User Schema
@@ -10,26 +11,26 @@ const userSchema = new mongoose.Schema(
   {
     firstName: {
       type: String,
-      required: [true, 'First name is required'],
+      required: [true, "First name is required"],
       trim: true,
     },
     lastName: {
       type: String,
-      required: [true, 'Last name is required'],
+      required: [true, "Last name is required"],
       trim: true,
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
+      required: [true, "Email is required"],
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
+      match: [/^\S+@\S+\.\S+$/, "Please provide a valid email"],
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
-      minlength: [6, 'Password must be at least 6 characters'],
+      required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
       select: false, // Don't return password by default
     },
     phone: {
@@ -38,8 +39,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['customer', 'admin', 'vendor'],
-      default: 'customer',
+      enum: ["customer", "admin", "vendor"],
+      default: "customer",
     },
     avatar: {
       url: String,
@@ -60,7 +61,7 @@ const userSchema = new mongoose.Schema(
         street: {
           type: String,
           required: true,
-          maxlength: [185, 'Address cannot exceed 185 characters'],
+          maxlength: [185, "Address cannot exceed 185 characters"],
         },
         area: {
           type: String,
@@ -80,7 +81,7 @@ const userSchema = new mongoose.Schema(
         country: {
           type: String,
           required: true,
-          default: 'India',
+          default: "India",
         },
         landmark: {
           type: String,
@@ -110,11 +111,11 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // Virtual field for full name
-userSchema.virtual('fullName').get(function () {
+userSchema.virtual("fullName").get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
 
@@ -125,9 +126,9 @@ userSchema.index({ role: 1 });
 /**
  * Pre-save middleware to hash password
  */
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+
   try {
     this.password = await bcrypt.hash(this.password, 10);
     next();
@@ -152,12 +153,12 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 userSchema.methods.generateOTP = function () {
   // Generate 6-digit OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  
+
   this.otp = {
     code: otp,
     expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
   };
-  
+
   return otp;
 };
 
@@ -170,12 +171,25 @@ userSchema.methods.verifyOTP = function (otpCode) {
   if (!this.otp || !this.otp.code || !this.otp.expiresAt) {
     return false;
   }
-  
+
   if (new Date() > this.otp.expiresAt) {
     return false; // OTP expired
   }
-  
+
   return this.otp.code === otpCode;
 };
 
-export default mongoose.model('User', userSchema);
+userSchema.methods.generatePasswordResetToken = function () {
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  this.resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  this.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+
+  return resetToken;
+};
+
+export default mongoose.model("User", userSchema);

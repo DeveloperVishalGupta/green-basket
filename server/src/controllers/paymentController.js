@@ -4,6 +4,7 @@ import Cart from '../models/Cart.js';
 import Notification from '../models/Notification.js';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
+import orderNotificationService from '../services/orderNotificationService.js';
 
 /**
  * Payment Controller
@@ -306,6 +307,16 @@ class PaymentController {
           // Don't fail the request if notification fails
         }
 
+        // Send WhatsApp order confirmation (customer) and new-order alert
+        // (vendor/admin). order.user is already populated from the query
+        // above, so no extra lookup is needed.
+        try {
+          await orderNotificationService.sendOrderWhatsAppNotifications(order, order.user);
+        } catch (whatsappError) {
+          console.error('❌ Failed to send WhatsApp order notifications:', whatsappError);
+          // Don't fail the request if WhatsApp delivery fails
+        }
+
         res.json({
           success: true,
           data: {
@@ -408,6 +419,16 @@ class PaymentController {
               await sendOrderConfirmationEmail(order, order.user);
             } catch (emailError) {
               console.error('Error sending confirmation email:', emailError);
+            }
+
+            // Send WhatsApp order confirmation (customer) and new-order
+            // alert (vendor/admin). The idempotency guard inside the
+            // service ensures this doesn't duplicate a notification
+            // already sent via the verifyPayment endpoint.
+            try {
+              await orderNotificationService.sendOrderWhatsAppNotifications(order, order.user);
+            } catch (whatsappError) {
+              console.error('Error sending WhatsApp order notifications:', whatsappError);
             }
 
           }

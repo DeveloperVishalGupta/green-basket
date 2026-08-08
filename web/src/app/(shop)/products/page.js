@@ -36,7 +36,6 @@ function ProductsContent() {
     bestSelling: false,
     inStock: false,
   });
-  console.log("Products:", products);
   const filteredProducts = products.filter((product) => {
     // categories[] is an array of populated objects or ObjectId strings
     const productCategoryIds = (product.categories || []).map((c) =>
@@ -72,11 +71,8 @@ function ProductsContent() {
       matchesInStock
     );
   });
-  console.log("Filtered Products:", filteredProducts);
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
-    console.log("Sorting by:", sortBy);
-    console.log("Sorting by:", a);
     switch (sortBy) {
       case "price-low":
         const minpriceA = Math.min(

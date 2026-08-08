@@ -88,7 +88,6 @@ export default function ProductCard({ product }) {
 
   const handleAddToCart = (e) => {
     const renderCount = 0;
-    console.log("Render count:", renderCount + 1);
     e.preventDefault();
     if (!user) {
       setPendingProduct(
@@ -98,13 +97,14 @@ export default function ProductCard({ product }) {
       setLoginModalVisible(true);
       return;
     }
-    addItem({
+    const cartProduct = {
       ...product,
       id: cartItemKey,
       price: currentPrice,
       selectedVariant,
-    });
-    setAddedProduct(product);
+    };
+    addItem(cartProduct);
+    setAddedProduct(cartProduct);
     setShowCartNotification(true);
   };
 

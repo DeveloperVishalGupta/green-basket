@@ -178,6 +178,33 @@ const orderSchema = new mongoose.Schema(
     shiprocketShipmentId: Number,
     courierName: String,
     awbCode: String,
+
+    // Guards to ensure WhatsApp notifications are sent at most once per
+    // order, even if payment verification and the Razorpay webhook race
+    whatsappNotified: {
+      customer: {
+        type: Boolean,
+        default: false,
+      },
+      vendor: {
+        type: Boolean,
+        default: false,
+      },
+    },
+
+    // Vendor's Confirm/Reject response to the new-order WhatsApp prompt.
+    // messageId is Meta's id for that prompt, used to correlate/dedupe
+    // the button-tap webhook; respondedAt is set once, on first transition
+    // out of "pending" (see WhatsappEvent for delivery-level idempotency).
+    vendorWhatsapp: {
+      status: {
+        type: String,
+        enum: ["pending", "confirmed", "rejected"],
+        default: "pending",
+      },
+      messageId: String,
+      respondedAt: Date,
+    },
   },
   {
     timestamps: true,

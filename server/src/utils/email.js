@@ -1,4 +1,7 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
+console.log("Inside email.js");
+console.log("SMTP_HOST:", process.env.SMTP_HOST);
+console.log("SMTP_PORT:", process.env.SMTP_PORT);
 
 /**
  * Email Configuration for Order Confirmations
@@ -8,10 +11,10 @@ import nodemailer from 'nodemailer';
 // Create reusable transporter
 const createTransporter = () => {
   return nodemailer.createTransporter({
-    service: 'gmail',
+    service: "gmail",
     auth: {
-      user: process.env.EMAIL_USER || 'your-email@gmail.com',
-      pass: process.env.EMAIL_PASSWORD || 'your-app-password', // Use app-specific password
+      user: process.env.EMAIL_USER || "your-email@gmail.com",
+      pass: process.env.EMAIL_PASSWORD || "your-app-password", // Use app-specific password
     },
   });
 };
@@ -35,7 +38,7 @@ const sendOrderConfirmation = async (order, user) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
     return { success: false, error: error.message };
@@ -53,10 +56,10 @@ const sendOrderStatusUpdate = async (order, user, status) => {
     const transporter = createTransporter();
 
     const statusMessages = {
-      processing: 'Your order is being processed',
-      shipped: 'Your order has been shipped!',
-      delivered: 'Your order has been delivered',
-      cancelled: 'Your order has been cancelled',
+      processing: "Your order is being processed",
+      shipped: "Your order has been shipped!",
+      delivered: "Your order has been delivered",
+      cancelled: "Your order has been cancelled",
     };
 
     const mailOptions = {
@@ -67,7 +70,7 @@ const sendOrderStatusUpdate = async (order, user, status) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
     return { success: false, error: error.message };
@@ -78,13 +81,15 @@ const sendOrderStatusUpdate = async (order, user, status) => {
  * Generate order confirmation email template
  */
 const generateOrderEmailTemplate = (order, user) => {
-  const itemsHTML = order.items.map(item => `
+  const itemsHTML = order.items
+    .map(
+      (item) => `
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
         <div style="display: flex; align-items: center;">
-          <img src="${item.product?.images?.[0]?.url || ''}" alt="${item.product?.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 12px;">
+          <img src="${item.product?.images?.[0]?.url || ""}" alt="${item.product?.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 12px;">
           <div>
-            <strong>${item.product?.name || 'Product'}</strong><br>
+            <strong>${item.product?.name || "Product"}</strong><br>
             <small style="color: #6b7280;">Qty: ${item.quantity}</small>
           </div>
         </div>
@@ -93,7 +98,9 @@ const generateOrderEmailTemplate = (order, user) => {
         <strong>₹${(item.price * item.quantity).toLocaleString()}</strong>
       </td>
     </tr>
-  `).join('');
+  `,
+    )
+    .join("");
 
   return `
     <!DOCTYPE html>
@@ -134,7 +141,7 @@ const generateOrderEmailTemplate = (order, user) => {
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #6b7280;">Payment Method:</td>
-                <td style="padding: 8px 0; text-align: right;"><strong>${order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online'}</strong></td>
+                <td style="padding: 8px 0; text-align: right;"><strong>${order.paymentMethod === "cod" ? "Cash on Delivery" : "Online"}</strong></td>
               </tr>
             </table>
           </div>
@@ -155,12 +162,16 @@ const generateOrderEmailTemplate = (order, user) => {
               <td style="padding: 8px 15px; color: #6b7280;">Delivery Fee</td>
               <td style="padding: 8px 15px; text-align: right; color: #374151;">₹${order.deliveryFee || 0}</td>
             </tr>
-            ${order.codCharges ? `
+            ${
+              order.codCharges
+                ? `
             <tr>
               <td style="padding: 8px 15px; color: #6b7280;">COD Charges</td>
               <td style="padding: 8px 15px; text-align: right; color: #374151;">₹${order.codCharges}</td>
             </tr>
-            ` : ''}
+            `
+                : ""
+            }
             <tr style="border-top: 2px solid #e5e7eb;">
               <td style="padding: 12px 15px; font-size: 18px; font-weight: bold; color: #111827;">Total</td>
               <td style="padding: 12px 15px; text-align: right; font-size: 18px; font-weight: bold; color: #10b981;">₹${order.total?.toLocaleString()}</td>
@@ -171,10 +182,10 @@ const generateOrderEmailTemplate = (order, user) => {
           <div style="margin-top: 20px; padding: 15px; background-color: #f9fafb; border-radius: 8px;">
             <h3 style="margin: 0 0 10px 0; color: #111827; font-size: 16px;">Delivery Address</h3>
             <p style="margin: 0; color: #374151; line-height: 1.6;">
-              ${order.shippingAddress?.fullName || user.firstName + ' ' + user.lastName}<br>
-              ${order.shippingAddress?.street || ''}<br>
-              ${order.shippingAddress?.city || ''}, ${order.shippingAddress?.state || ''} - ${order.shippingAddress?.zipCode || ''}<br>
-              ${order.shippingAddress?.phone || user.phone || ''}
+              ${order.shippingAddress?.fullName || user.firstName + " " + user.lastName}<br>
+              ${order.shippingAddress?.street || ""}<br>
+              ${order.shippingAddress?.city || ""}, ${order.shippingAddress?.state || ""} - ${order.shippingAddress?.zipCode || ""}<br>
+              ${order.shippingAddress?.phone || user.phone || ""}
             </p>
           </div>
 
@@ -207,28 +218,28 @@ const generateOrderEmailTemplate = (order, user) => {
 const generateStatusUpdateTemplate = (order, user, status) => {
   const statusConfig = {
     processing: {
-      icon: '⚙️',
-      title: 'Order Processing',
-      message: 'Your order is being prepared for shipment.',
-      color: '#3b82f6',
+      icon: "⚙️",
+      title: "Order Processing",
+      message: "Your order is being prepared for shipment.",
+      color: "#3b82f6",
     },
     shipped: {
-      icon: '🚚',
-      title: 'Order Shipped',
-      message: 'Your order is on its way!',
-      color: '#f59e0b',
+      icon: "🚚",
+      title: "Order Shipped",
+      message: "Your order is on its way!",
+      color: "#f59e0b",
     },
     delivered: {
-      icon: '✅',
-      title: 'Order Delivered',
-      message: 'Your order has been successfully delivered.',
-      color: '#10b981',
+      icon: "✅",
+      title: "Order Delivered",
+      message: "Your order has been successfully delivered.",
+      color: "#10b981",
     },
     cancelled: {
-      icon: '❌',
-      title: 'Order Cancelled',
-      message: 'Your order has been cancelled.',
-      color: '#ef4444',
+      icon: "❌",
+      title: "Order Cancelled",
+      message: "Your order has been cancelled.",
+      color: "#ef4444",
     },
   };
 
@@ -261,8 +272,4 @@ const generateStatusUpdateTemplate = (order, user, status) => {
   `;
 };
 
-export {
-  sendOrderConfirmation,
-  sendOrderStatusUpdate
-};
-
+export { sendOrderConfirmation, sendOrderStatusUpdate };

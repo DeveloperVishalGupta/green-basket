@@ -204,7 +204,6 @@ export default function CartPage() {
 
       {/* Cart Items */}
       <main className="mx-auto max-w-7xl px-4 py-6">
-        {console.log(items)}
         <div className="space-y-3">
           {items.map((item) => {
             const hasVariants =
@@ -289,7 +288,7 @@ export default function CartPage() {
                           })}
                         </div>
                       )}
- 
+
                       {/* Stock + Unit badges */}
                       <div className="flex items-center gap-2 flex-wrap">
                         {item.selectedVariant?.label && (
@@ -554,8 +553,6 @@ export default function CartPage() {
               if (appliedCoupon) {
                 params.set("coupon", JSON.stringify(appliedCoupon));
               }
-              // console.log('Proceeding to checkout with params:', params.toString());
-              // console.log('Cart items:', `/checkout?${params?.toString()}`);
               router.push(`/checkout?${params?.toString()}`);
             }}
             disabled={!canProceedToCheckout}
