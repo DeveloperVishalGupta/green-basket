@@ -1,46 +1,64 @@
 # Green Basket - E-Commerce Platform
 
-A modern e-commerce grocery platform built with Next.js 16, React 19, and Tailwind CSS v4 for the frontend, and Node.js, Express, and MongoDB for the backend.
+A modern e-commerce grocery platform built with Next.js 16, React 19, Ant Design 5, and Tailwind CSS v4 for the frontend, and Node.js, Express, and MongoDB for the backend.
+
 ## 📁 Project Structure
 
 ```
-green-basket/
-├── web/              # Frontend (Next.js 16)
+apna-bazaar/
+├── web/                      # Frontend (Next.js 16, App Router)
 │   ├── src/
-│   │   ├── app/      # Next.js App Router pages
-│   │   ├── components/  # React components
-│   │   ├── lib/      # Utilities and API client
-│   │   ├── hooks/    # Custom React hooks
-│   │   └── store/    # State management (Zustand)
-│   ├── public/       # Static assets
+│   │   ├── app/
+│   │   │   ├── (auth)/       # Login, register, OTP, password reset
+│   │   │   ├── (shop)/       # Products, categories, cart, checkout, orders
+│   │   │   ├── (profile)/    # Profile, addresses, wishlist, notifications
+│   │   │   ├── (admin)/      # Admin dashboard
+│   │   │   └── (vendor)/     # Vendor dashboard
+│   │   ├── components/       # UI, layout, admin, checkout, home, product components
+│   │   ├── services/         # API client modules (incl. services/admin)
+│   │   ├── lib/               # Utilities and configuration
+│   │   ├── hooks/             # Custom React hooks
+│   │   ├── store/             # State management (Zustand)
+│   │   └── utils/             # Helper functions
+│   ├── public/                # Static assets
 │   └── package.json
 │
-└── server/           # Backend (Express + MongoDB)
+└── server/                   # Backend (Express + MongoDB)
     ├── src/
-    │   ├── config/      # Configuration files
-    │   ├── models/      # Mongoose models
-    │   ├── controllers/ # API controllers
-    │   ├── routes/      # API routes
-    │   ├── middleware/  # Express middleware
-    │   └── utils/       # Utility functions
+    │   ├── config/            # Env, database, and Swagger configuration
+    │   ├── models/             # Mongoose models (User, Product, Category, Cart,
+    │   │                        #   Order, Wishlist, Notification, WhatsappEvent)
+    │   ├── controllers/        # Request handlers
+    │   ├── routes/              # API routes
+    │   ├── middleware/          # Express middleware (auth, error handling, etc.)
+    │   ├── services/            # Business logic / integrations
+    │   ├── validators/          # Request validation (Joi/express-validator)
+    │   ├── swagger/             # API documentation
+    │   └── utils/                # Utility functions
+    ├── scripts/                # createAdmin, seedData, updateSalesCount
     └── package.json
 ```
-## � Features
 
-- ✨ Modern, responsive UI with Tailwind CSS v4
-- 🛍️ Product catalog with categories and filtering
-- 🛒 Shopping cart functionality
-- 👤 User authentication and profiles
-- 📦 Order management
-- 🎨 Clean, maintainable codebase
-- � Mobile-first responsive design
+## ✨ Features
+
+- Modern, responsive UI built with Ant Design 5 and Tailwind CSS v4
+- Product catalog with categories and filtering
+- Shopping cart and wishlist
+- User authentication (register, login, OTP verification, forgot/reset password)
+- Address management and checkout flow
+- Order management and shipment tracking
+- Razorpay payment integration
+- Admin dashboard for managing products, categories, and orders
+- Vendor dashboard
+- Notifications (in-app, email via AWS SES, WhatsApp webhook events)
+- Interactive API documentation via Swagger
 
 ## 📋 Prerequisites
 
 Before you begin, ensure you have installed:
 
-- **Node.js** (v20 or higher)
-- **npm** or **yarn**
+- **Node.js** (v22 or higher recommended for the server, v20+ for the frontend)
+- **npm**
 - **MongoDB** (local or MongoDB Atlas account)
 
 ## 🛠️ Installation & Setup
@@ -49,61 +67,42 @@ Before you begin, ensure you have installed:
 
 ```bash
 git clone <repository-url>
-cd green-basket
+cd apna-bazaar
 ```
 
 ### 2. Frontend Setup
 
 ```bash
-# Navigate to web directory
 cd web
-
-# Install dependencies
 npm install --legacy-peer-deps
 
-# Create environment file
-cp .env.example .env.local
-
-# Edit .env.local with your configuration
-# NEXT_PUBLIC_API_URL=http://localhost:5000
+# Create an env file and set the variables listed below
 ```
 
 ### 3. Backend Setup
 
 ```bash
-# Navigate to server directory from root
 cd server
-
-# Install dependencies
 npm install
 
-# Create environment file
-cp .env.example .env
-
-# Edit .env with your configuration:
-# PORT=5000
-# MONGODB_URI=mongodb://localhost:27017/green-basket
-# JWT_SECRET=your-secret-key-here
-# CLIENT_URL=http://localhost:3000
+# Create an env file and set the variables listed below
 ```
 
-## 🏃‍♂️ Running the Application
+## 🏃 Running the Application
 
 ### Development Mode
 
-**Terminal 1 - Frontend (from root):**
+**Terminal 1 - Frontend (from `web/`):**
 ```bash
-cd web
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000)
 
-**Terminal 2 - Backend (from root):**
+**Terminal 2 - Backend (from `server/`):**
 ```bash
-cd server
 npm run dev
 ```
-Backend runs on [http://localhost:5000](http://localhost:5000)
+Backend runs on [http://localhost:5000](http://localhost:5000), with API docs at `/api-docs`.
 
 ### Production Build
 
@@ -120,73 +119,53 @@ cd server
 npm start
 ```
 
-## 📁 Project Structure
-
-```
-green-basket/
-├── src/
-│   ├── app/              # Next.js pages (App Router)
-│   ├── components/       # React components
-│   │   ├── ui/          # Reusable UI components
-│   │   └── layout/      # Layout components (Header, Footer)
-│   ├── lib/             # Utilities and configurations
-│   ├── hooks/           # Custom React hooks
-│   └── store/           # State management (Zustand)
-├── public/              # Static assets
-├── server/              # Backend API
-│   ├── src/
-│   │   ├── models/      # Mongoose models
-│   │   ├── controllers/ # Request handlers
-│   │   ├── routes/      # API routes
-│   │   └── middleware/  # Express middleware
-│   └── package.json
-└── package.json
-```
-
 ## 🎨 Tech Stack
 
 ### Frontend
-- **Next.js 16** - React framework
+- **Next.js 16** - React framework (App Router)
 - **React 19** - UI library
-- **Ant Design 5** - **Primary UI component library**
+- **Ant Design 5/6** - Primary UI component library
 - **Tailwind CSS v4** - Utility-first CSS for layouts
 - **Zustand** - State management
+- **TanStack Query** - Server state / data fetching
 - **Axios** - HTTP client
+- **Chart.js** - Charts (admin/vendor dashboards)
 
 ### Backend
-- **Node.js** - Runtime
-- **Express** - Web framework
-- **MongoDB** - Database
-- **Mongoose** - ODM
-- **JWT** - Authentication
+- **Node.js / Express** - Runtime and web framework
+- **MongoDB / Mongoose** - Database and ODM
+- **JWT / bcryptjs** - Authentication
+- **Joi / express-validator** - Request validation
+- **Cloudinary** - Image storage
+- **Razorpay** - Payments
+- **AWS SES / Nodemailer** - Transactional email
+- **Swagger (swagger-jsdoc + swagger-ui-express)** - API documentation
+- **Helmet / CORS / Morgan** - Security and logging
 
-## � Documentation
+## 🔌 API Overview
 
-For detailed development guidelines, coding standards, and best practices, see **[AGENTS.md](./AGENTS.md)**.
+All backend routes are mounted under `/api`:
 
-## � Key Features to Implement
+| Route | Purpose |
+|---|---|
+| `/api/auth` | Register, login, OTP, forgot/reset password |
+| `/api/users` | User profile and account management |
+| `/api/products` | Product catalog |
+| `/api/categories` | Product categories |
+| `/api/cart` | Shopping cart |
+| `/api/wishlist` | Wishlist |
+| `/api/orders` | Order management |
+| `/api/payment` | Razorpay payment integration |
+| `/api/shipment` | Shipment tracking |
+| `/api/admin` | Admin operations |
+| `/api/notifications` | In-app/email notifications |
+| `/api/webhooks/whatsapp` | WhatsApp event webhooks |
 
-- [ ] User authentication (login/register)
-- [ ] Product listing and details
-- [ ] Shopping cart
-- [ ] Checkout process
-- [ ] Order management
-- [ ] Admin dashboard
-- [ ] Product search and filtering
-- [ ] Payment integration
-- [ ] Email notifications
-
-## 🤝 Contributing
-
-1. Read the [AGENTS.md](./AGENTS.md) for coding standards
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+Full interactive documentation is available at `http://localhost:5000/api-docs` when the server is running.
 
 ## 📝 Available Scripts
 
-### Frontend
-
+### Frontend (`web/`)
 ```bash
 npm run dev      # Start development server
 npm run build    # Build for production
@@ -194,43 +173,61 @@ npm start        # Run production build
 npm run lint     # Run ESLint
 ```
 
-### Backend
-
+### Backend (`server/`)
 ```bash
-npm run dev      # Start with nodemon
-npm start        # Start production server
+npm run dev            # Start with nodemon
+npm start               # Start production server
+npm run create-admin    # Create an admin user (scripts/createAdmin.js)
+npm run seed             # Seed the database (scripts/seedData.js)
+npm run update-sales     # Recalculate product sales counts
 ```
 
 ## 🔒 Environment Variables
 
-### Frontend (.env.local)
+Neither app ships a committed `.env.example`; create the files below yourself (both are already git-ignored).
+
+### Frontend (`web/.env` or `web/.env.local`)
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5000
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
 ```
 
-### Backend (server/.env)
+### Backend (`server/.env`)
 ```env
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/green-basket
 JWT_SECRET=your-secret-key
 CLIENT_URL=http://localhost:3000
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# Razorpay
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+
+# Email (AWS SES / SMTP via Nodemailer)
+SMTP_HOST=
+SMTP_PORT=
 ```
+
+> Check `server/src/config/` and the individual services in `server/src/services/` for the full list of variables required by each integration.
 
 ## 🐛 Troubleshooting
 
 ### MongoDB Connection Issues
 - Ensure MongoDB is running locally: `mongod`
-- Or use MongoDB Atlas connection string
+- Or use a MongoDB Atlas connection string
 
 ### CORS Errors
-- Check `CLIENT_URL` in backend `.env`
+- Check `CLIENT_URL` in `server/.env`
 - Verify CORS configuration in `server/src/index.js`
 
 ### Tailwind Not Working
-- Restart dev server
-- Check `postcss.config.mjs` configuration
-- Verify `@import "tailwindcss"` in `globals.css`
+- Restart the dev server
+- Check `web/postcss.config.mjs` configuration
+- Verify `@import "tailwindcss"` is present in the global stylesheet
 
 ## 📞 Support
 
