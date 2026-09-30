@@ -4,6 +4,7 @@ import {
   AdminErrorState,
   AdminLoadingState,
 } from "@/components/admin/AdminStates";
+import ShoppingListCard from "@/components/admin/ShoppingListCard";
 import { useAdminDashboard } from "@/services/admin/dashboard";
 import {
   ArrowUpOutlined,
@@ -185,6 +186,9 @@ export default function AdminDashboard() {
           ]}
         />
       </div>
+
+      {/* Shopping List */}
+      <ShoppingListCard />
 
       {/* Stats Cards */}
       <Row gutter={[16, 16]}>

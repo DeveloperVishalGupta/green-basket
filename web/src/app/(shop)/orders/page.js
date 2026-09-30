@@ -1,26 +1,22 @@
 "use client";
 
 import BottomNav from "@/components/layout/BottomNav";
+import PageHeader from "@/components/layout/PageHeader";
 import { useAuth } from "@/hooks/useAuth";
-import { useCancelOrder, useOrders } from "@/hooks/useOrders";
+import { useOrders } from "@/hooks/useOrders";
 import {
-  ArrowLeftOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
-  CloseCircleOutlined,
   ShoppingOutlined,
 } from "@ant-design/icons";
-import { App, Badge, Button, Input, Modal, Spin, Tabs, Tag } from "antd";
-import Image from "next/image";
+import { Badge, Button, Spin, Tabs, Tag } from "antd";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 
 /**
  * Orders Page - Enhanced with API Integration
  * Shows user's order history with status tabs
  */
 export default function OrdersPage() {
-  const { message } = App.useApp();
   const router = useRouter();
   const { user } = useAuth();
   const {
@@ -30,68 +26,8 @@ export default function OrdersPage() {
   } = useOrders({
     enabled: !!user,
   });
-  const { mutate: cancelOrder, isPending: isCancelling } = useCancelOrder();
-
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [cancelReason, setCancelReason] = useState("");
 
   const orders = ordersData?.data || [];
-
-  const handleCancelClick = (order, e) => {
-    e.stopPropagation();
-    setSelectedOrder(order);
-    setCancelModalOpen(true);
-  };
-
-  const handleCancelConfirm = () => {
-    if (!cancelReason.trim()) {
-      message.error("Please provide a reason for cancellation");
-      return;
-    }
-
-    cancelOrder(
-      { orderId: selectedOrder._id, reason: cancelReason },
-      {
-        onSuccess: (response) => {
-          // Show success message
-          message.success(response?.message || "Order cancelled successfully");
-
-          // Show additional feedback for refunds and shipment cancellation
-          if (response?.cancellationSummary) {
-            const { shiprocketCancelled, refundProcessed, errors } =
-              response.cancellationSummary;
-
-            if (refundProcessed && response?.data?.pricing?.total) {
-              message.info({
-                content: `💰 Refund of ₹${response.data.pricing.total} has been initiated. It will be credited to your account in 5-7 business days.`,
-                duration: 8,
-              });
-            }
-
-            if (shiprocketCancelled) {
-              message.success("📦 Shipment has been cancelled", 3);
-            }
-
-            if (errors && errors.length > 0) {
-              message.warning(`Note: ${errors.join(", ")}`, 5);
-            }
-          }
-
-          setCancelModalOpen(false);
-          setSelectedOrder(null);
-          setCancelReason("");
-        },
-        onError: (err) => {
-          const errorMessage =
-            err?.response?.data?.message ||
-            err?.message ||
-            "Failed to cancel order";
-          message.error(errorMessage);
-        },
-      },
-    );
-  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -145,88 +81,71 @@ export default function OrdersPage() {
   };
 
   const OrderCard = ({ order }) => {
-    const firstProduct = order.items[0];
+    const items = order.items || [];
+    const visibleItems = items.slice(0, 3);
+    const remainingCount = items.length - visibleItems.length;
 
     return (
-      <div
-        onClick={() => router.push(`/orders/${order._id}`)}
-        className="bg-white rounded-2xl p-5 shadow-md hover:shadow-xl transition-all duration-300 mb-4 cursor-pointer border-2 border-transparent hover:border-emerald-200">
+      <div className="bg-white rounded-2xl p-5 shadow-md transition-all duration-300 mb-4 border-2 border-transparent">
         {/* Order Header */}
-        <div className="flex items-center justify-between ">
-          <div>
-            <p className="text-xs flex flex-col  font-medium">
-              <span className="text-xs mb-1 text-gray-500">Order ID</span>
-              <span className="text-sm text-gray-900">
-                #{order.orderNumber || order._id?.slice(-6).toUpperCase()}
-              </span>
-            </p>
-          </div>
-          <div>
-            <div className="flex text-xs mb-1 items-center gap-1">
-              <span className=" font-semibold text-gray-900 mt-1">
-                {new Date(order.createdAt).toLocaleDateString("en-IN", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </span>
-
-              <span className="font-medium text-gray-500 mt-1">{"|"}</span>
-              <span className="font-medium text-gray-500 mt-1">
-                {new Date(order.createdAt).toLocaleString("en-IN", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
-              </span>
-            </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium text-gray-500 shrink-0">
+            #{order.orderNumber || order._id?.slice(-6).toUpperCase()}
+          </span>
+          <div className="flex items-center gap-2 text-xs text-gray-500 shrink-0">
+            <span>
+              {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </span>
+            <span>|</span>
+            <span>
+              {new Date(order.createdAt).toLocaleString("en-IN", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })}
+            </span>
             {getStatusBadge(order.status)}
           </div>
         </div>
 
         {/* Order Items Preview */}
-        <div className="flex gap-4 mt-2 mb-4">
-          <div className="h-20 w-20 border-gray-300 border orderPageProductImage shrink-0 overflow-hidden rounded-xl bg-linear-to-br from-gray-100 to-gray-200">
-            {firstProduct?.image ? (
-              <Image
-                src={firstProduct.image}
-                alt={firstProduct.name}
-                fill
-                className="object-cover relative!"
-                sizes="(max-width: 768px) 100vw, 33vw"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-3xl">
-                📦
+        <div className="mt-2 mb-4">
+          <div className="space-y-2">
+            {visibleItems.map((item, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <p className="flex-1 min-w-0 truncate font-medium text-gray-900 text-sm">
+                  {item.name || "Product"}
+                </p>
+                <div className="flex shrink-0 items-center gap-1.5 text-xs text-gray-500">
+                  {item.variant && (
+                    <span className="px-2 py-0.5 font-medium bg-blue-100 text-blue-700 rounded-md">
+                      {item.variant}
+                    </span>
+                  )}
+                  <span>
+                    Qty: {item.quantity} {item.unit || ""}
+                  </span>
+                </div>
               </div>
-            )}
+            ))}
           </div>
-          <div className="flex-1">
-            <p className="font-semibold text-gray-900 line-clamp-1">
-              {firstProduct?.name || "Product"}
+          {remainingCount > 0 && (
+            <p className="text-sm text-emerald-600 font-medium mt-2">
+              +{remainingCount} more item{remainingCount !== 1 ? "s" : ""}
             </p>
-            {/* Show variant if available */}
-            {firstProduct?.variant && (
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-md">
-                  {firstProduct.variant}
-                </span>
-              </div>
-            )}
-            {order.items.length > 1 && (
-              <p className="text-sm text-emerald-600 font-medium mt-1">
-                +{order.items.length - 1} more item(s)
-              </p>
-            )}
-            <p className="text-sm text-gray-600 mt-2 flex items-center gap-2">
-              <span className="bg-gray-100 px-2 py-1 rounded-lg">
-                {order.items.length} items
-              </span>
-              <span className="font-bold bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                ₹{order.pricing?.total?.toLocaleString() || "0"}
-              </span>
-            </p>
-          </div>
+          )}
+          <p className="text-sm text-gray-600 mt-3 flex items-center gap-2">
+            <span className="bg-gray-100 px-2 py-1 rounded-lg">
+              {items.length} item{items.length !== 1 ? "s" : ""}
+            </span>
+            <span className="font-bold bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+              ₹{order.pricing?.total?.toLocaleString() || "0"}
+            </span>
+          </p>
         </div>
 
         {/* Delivery Info */}
@@ -309,26 +228,20 @@ export default function OrdersPage() {
           {order.refund?.status === "failed" && (
             <a
               href={`mailto:support@greenbasket.com?subject=Refund Failed - Order ${order.orderNumber || order._id?.slice(-8).toUpperCase()}&body=Hello,%0A%0AMy refund has failed for the following order:%0A%0AOrder Number: ${order.orderNumber || order._id?.slice(-8).toUpperCase()}%0AOrder ID: ${order._id}%0ARefund Amount: ₹${order.refund.amount}%0A%0APlease help me process the refund manually.%0A%0AThank you.`}
-              className="flex-1 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all text-center"
-              onClick={(e) => e.stopPropagation()}>
+              className="flex-1 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all text-center">
               📧 Contact Support for Refund
             </a>
           )}
-          {/* Cancel button for pending/confirmed orders */}
-          {["pending", "confirmed", "processing"].includes(order.status) &&
-            !order.refund?.status && (
-              <button
-                onClick={(e) => handleCancelClick(order, e)}
-                className="flex-1 py-2.5 text-sm font-bold text-red-600 border-2 border-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all">
-                <CloseCircleOutlined className="mr-1" />
-                Cancel Order
-              </button>
-            )}
           {order.status === "delivered" && !order.refund?.status && (
             <button className="flex-1 py-2.5 text-sm font-bold text-blue-600 border-2 border-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all">
               Buy Again
             </button>
           )}
+          <button
+            onClick={() => router.push(`/orders/${order._id}`)}
+            className="ml-auto px-4 py-2 text-sm font-bold text-emerald-600 border-2 border-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all">
+            View
+          </button>
         </div>
       </div>
     );
@@ -337,7 +250,7 @@ export default function OrdersPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white/95">
+      <div className="flex min-h-below-header items-center justify-center bg-white/95">
         <div className="text-center">
           <Spin size="large" />
           <p className="mt-4 text-gray-600 font-medium">
@@ -351,7 +264,7 @@ export default function OrdersPage() {
   // Error state
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white/95 px-4">
+      <div className="flex min-h-below-header items-center justify-center bg-white/95 px-4">
         <div className="text-center max-w-md">
           <div className="bg-linear-to-br from-red-100 to-orange-100 rounded-3xl p-12 inline-block mb-6">
             <div className="text-7xl">😞</div>
@@ -465,23 +378,11 @@ export default function OrdersPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white/95 pb-20 lg:pb-0 lg:pl-0">
-      {/* Enhanced Header */}
-      <header className="sticky top-0 z-10 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-lg px-4 py-4">
-        <div className="mx-auto flex max-w-7xl items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-all hover:scale-105">
-            <ArrowLeftOutlined className="text-xl" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">My Orders</h1>
-            <p className="text-sm text-gray-600">
-              {orders.length} total order{orders.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-below-header bg-white/95 pb-20 lg:pb-0 lg:pl-0">
+      <PageHeader
+        title="My Orders"
+        subtitle={`${orders.length} total order${orders.length !== 1 ? "s" : ""}`}
+      />
 
       <main className="mx-auto max-w-7xl px-4">
         <Tabs
@@ -491,42 +392,6 @@ export default function OrdersPage() {
           size="large"
         />
       </main>
-
-      {/* Cancel Order Modal */}
-      <Modal
-        title="Cancel Order"
-        open={cancelModalOpen}
-        onOk={handleCancelConfirm}
-        onCancel={() => {
-          setCancelModalOpen(false);
-          setSelectedOrder(null);
-          setCancelReason("");
-        }}
-        okText="Confirm Cancellation"
-        cancelText="Go Back"
-        okButtonProps={{ danger: true, loading: isCancelling }}>
-        <div className="py-4">
-          <p className="mb-4 text-gray-700">
-            Are you sure you want to cancel this order?
-            {selectedOrder && (
-              <span className="font-semibold">
-                {" "}
-                Order #
-                {selectedOrder.orderNumber ||
-                  selectedOrder._id?.slice(-6).toUpperCase()}
-              </span>
-            )}
-          </p>
-          <Input.TextArea
-            placeholder="Please provide a reason for cancellation (required)"
-            value={cancelReason}
-            onChange={(e) => setCancelReason(e.target.value)}
-            rows={4}
-            maxLength={200}
-            showCount
-          />
-        </div>
-      </Modal>
 
       <BottomNav />
     </div>

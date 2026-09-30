@@ -25,6 +25,23 @@ export const useAdminDashboard = (period) => {
 };
 
 /**
+ * React Query hook for the admin shopping list: total quantity needed per
+ * product across all orders scheduled for a given delivery date (YYYY-MM-DD).
+ */
+export const useAdminShoppingList = (date) => {
+  return useQuery({
+    queryKey: ["admin", "shopping-list", date],
+    queryFn: async () => {
+      const response = await api.get(`api/admin/orders/shopping-list`, {
+        params: { date },
+      });
+      return response.data.data;
+    },
+    enabled: !!date,
+  });
+};
+
+/**
  * React Query hook for fetching vendors assigned to a company
  */
 export const useGetVendorsByCompanyId = (companyId) => {

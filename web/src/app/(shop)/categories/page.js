@@ -2,10 +2,10 @@
 
 import CategoryCard from "@/components/home/CategoryCard";
 import BottomNav from "@/components/layout/BottomNav";
+import PageHeader from "@/components/layout/PageHeader";
 import { useCategories } from "@/hooks/useCategories";
-import { ArrowLeftOutlined, SearchOutlined } from "@ant-design/icons";
+import { SearchOutlined } from "@ant-design/icons";
 import { Alert, Input, Spin } from "antd";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 /**
@@ -13,7 +13,6 @@ import { useState } from "react";
  * Shows all available product categories
  */
 export default function CategoriesPage() {
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const { data, isLoading, error } = useCategories();
 
@@ -24,39 +23,25 @@ export default function CategoriesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-white/95 pb-20 lg:pb-0 lg:pl-0">
-      {/* Enhanced Header */}
-      <header className="sticky top-0 z-10 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-lg">
-        <div className="mx-auto flex justify-between items-center max-w-7xl px-4 py-4">
-          <div className="flex w-full items-center gap-3 mb-3">
-            <button
-              onClick={() => router.back()}
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-all hover:scale-105">
-              <ArrowLeftOutlined className="text-xl" />
-            </button>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                Shop by Category
-              </h1>
-              <p className="text-sm text-gray-600">
-                {filteredCategories.length} categories available
-              </p>
-            </div>
-          </div>
-          <div className="w-1/2 flex">
-            {/* Search Bar */}
-            <Input
-              size="large"
-              placeholder="Search categories..."
-              prefix={<SearchOutlined className="text-emerald-600" />}
-              className="rounded-xl border-2 border-gray-200 w-1/2 hover:border-emerald-400 focus:border-emerald-500"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              allowClear
-            />
-          </div>
+    <div className="min-h-below-header bg-white/95 pb-20 lg:pb-0 lg:pl-0">
+      <PageHeader
+        title="Shop by Category"
+        subtitle={`${filteredCategories.length} categories available`}
+      />
+
+      {/* Search Bar */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3">
+        <div className="mx-auto max-w-7xl sm:flex sm:justify-end">
+          <Input
+            placeholder="Search categories..."
+            prefix={<SearchOutlined className="text-emerald-600" />}
+            className="rounded-xl border-2 border-gray-200 w-full sm:w-64 hover:border-emerald-400 focus:border-emerald-500"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            allowClear
+          />
         </div>
-      </header>
+      </div>
 
       {/* Categories Grid */}
       <main className="mx-auto max-w-7xl px-4 py-8">

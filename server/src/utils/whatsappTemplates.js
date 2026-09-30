@@ -31,6 +31,113 @@ const formatItemsSummary = (items = []) =>
 
 const textParam = (value) => ({ type: "text", text: String(value) });
 
+/** Admin/business contact shown in customer messages ("+91 9320206598"). */
+const ADMIN_CONTACT_NUMBER = process.env.ADMIN_CONTACT_NUMBER || "+91 9320206598";
+
+const formatDeliveryDate = (date) => {
+  if (!date) return "Not scheduled";
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return "Not scheduled";
+  return d.toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const formatItemLine = (item, index) => {
+  const label = item.variant ? `${item.name} (${item.variant})` : item.name;
+  return `${index + 1}. ${item.quantity} x ${label} — ${formatCurrency(
+    item.price,
+  )} x ${item.quantity} = ${formatCurrency(item.subtotal ?? item.price * item.quantity)}`;
+};
+
+/**
+ * Full, human-readable order summary sent to the customer as a plain-text
+ * WhatsApp message (not a template) right after checkout. Includes the
+ * itemised list, the bill breakdown with any coupon/offer discount, the
+ * delivery date + allotted time slot, and the delivery address.
+ */
+const buildCustomerOrderDetailsText = (order, user) => {
+  const pricing = order.pricing || {};
+  const addr = order.shippingAddress || {};
+
+  const lines = [
+    `Hi ${formatCustomerName(user)}, your Green Basket order is confirmed! 🧺`,
+    "",
+    `*Order No:* ${order.orderNumber}`,
+    `*Placed on:* ${formatDeliveryDate(order.createdAt || new Date())}`,
+    "",
+    "*Items*",
+    ...order.items.map(formatItemLine),
+    "",
+    "*Bill Details*",
+    `Item total: ${formatCurrency(pricing.subtotal)}`,
+  ];
+
+  if (pricing.discount > 0) {
+    const offerLabel = order.coupon?.code
+      ? `Offer (${order.coupon.code})`
+      : "Discount";
+    lines.push(`${offerLabel}: -${formatCurrency(pricing.discount)}`);
+  }
+
+  lines.push(
+    `Delivery fee: ${pricing.shippingFee > 0 ? formatCurrency(pricing.shippingFee) : "FREE"}`,
+  );
+
+  if (pricing.tax > 0) {
+    lines.push(`Tax: ${formatCurrency(pricing.tax)}`);
+  }
+
+  lines.push(
+    `*To pay (Cash on Delivery): ${formatCurrency(pricing.total)}*`,
+    "",
+    "*Delivery*",
+    `Date: ${formatDeliveryDate(order.deliveryDate)}`,
+    `Time slot: ${order.deliveryTimeSlot || "To be confirmed"}`,
+    `Address: ${[addr.street, addr.city, addr.state, addr.zipCode]
+      .filter(Boolean)
+      .join(", ")}`,
+    "",
+    `Need help? Call or WhatsApp us at ${ADMIN_CONTACT_NUMBER}.`,
+    "Thank you for shopping with Green Basket!",
+  );
+
+  return lines.join("\n");
+};
+
+/**
+ * Compact new-order summary sent to the vendor/admin as a plain-text
+ * WhatsApp message (used by the non-API "link" messaging provider, which
+ * cannot carry the Confirm/Reject quick-reply buttons).
+ */
+const buildVendorOrderDetailsText = (order) => {
+  const pricing = order.pricing || {};
+  const addr = order.shippingAddress || {};
+
+  return [
+    `🛒 New order ${order.orderNumber}`,
+    "",
+    "*Items*",
+    ...order.items.map(formatItemLine),
+    "",
+    `Item total: ${formatCurrency(pricing.subtotal)}`,
+    pricing.discount > 0
+      ? `Discount${order.coupon?.code ? ` (${order.coupon.code})` : ""}: -${formatCurrency(pricing.discount)}`
+      : null,
+    `Delivery fee: ${pricing.shippingFee > 0 ? formatCurrency(pricing.shippingFee) : "FREE"}`,
+    `*Total (COD): ${formatCurrency(pricing.total)}*`,
+    "",
+    `Deliver on: ${formatDeliveryDate(order.deliveryDate)} — ${order.deliveryTimeSlot || "slot TBC"}`,
+    `To: ${[addr.street, addr.city, addr.state, addr.zipCode].filter(Boolean).join(", ")}`,
+    addr.phone ? `Phone: ${addr.phone}` : null,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+};
+
 /**
  * Template sent to the customer confirming their order was placed.
  */
@@ -103,6 +210,8 @@ const buildCustomerOrderStatusTemplate = (order, user, vendorStatus) => ({
 export {
   WHATSAPP_TEMPLATES,
   buildCustomerOrderConfirmationTemplate,
+  buildCustomerOrderDetailsText,
+  buildVendorOrderDetailsText,
   buildVendorOrderNotificationTemplate,
   buildCustomerOrderStatusTemplate,
 };

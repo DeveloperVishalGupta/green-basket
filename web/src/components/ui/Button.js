@@ -35,13 +35,13 @@ export default function Button({
   type = 'button',
   ...props
 }) {
-  const baseStyles = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
-  
+  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-surface disabled:opacity-50 disabled:cursor-not-allowed';
+
   const variants = {
-    primary: 'bg-black text-white hover:bg-gray-800 focus:ring-gray-900',
-    secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500',
-    outline: 'border-2 border-black text-black hover:bg-black hover:text-white focus:ring-gray-900',
-    ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500',
+    primary: 'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-600',
+    secondary: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus:ring-emerald-500 dark:bg-emerald-950 dark:text-emerald-300 dark:hover:bg-emerald-900',
+    outline: 'border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-600 hover:text-white focus:ring-emerald-600 dark:text-emerald-400 dark:border-emerald-500',
+    ghost: 'text-text-secondary hover:bg-surface-hover focus:ring-emerald-500',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
   };
   

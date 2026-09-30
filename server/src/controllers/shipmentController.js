@@ -130,11 +130,6 @@ export const createShipment = async (req, res) => {
     const discount = Number(order.discount || order.total_discount || 0);
     const shipping_charges = Number(order.shipping_charges || order.shippingFee || 0);
 
-    // Calculate expected total for validation
-    const calculatedTotal = sub_total - discount + shipping_charges;
-    const providedAmount = Number(order.amount || 0);
-
-    
     /* ---------------- FINAL PAYLOAD ---------------- */
     const payload = {
       order_id: String(order.orderId || `ORDER-${Date.now()}`),

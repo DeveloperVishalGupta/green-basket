@@ -3,6 +3,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Result, Spin } from 'antd';
+import { CheckCircleOutlined } from '@ant-design/icons';
 // import { paymentAPI } from '@/lib/api';
 
 /**
@@ -18,7 +20,7 @@ export default function CheckoutSuccessPage() {
   const razorpay_signature = searchParams.get('razorpay_signature');
   
   const [loading, setLoading] = useState(true);
-  const [order, setOrder] = useState(null);
+  const [order] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function CheckoutSuccessPage() {
     }
 
     verifyPayment({ razorpay_payment_id, razorpay_order_id, razorpay_signature });
-  }, [razorpay_payment_id, razorpay_order_id, razorpay_signature]);
+  }, [razorpay_payment_id, razorpay_order_id, razorpay_signature, router]);
 
   const verifyPayment = async (paymentData) => {
     try {
@@ -56,7 +58,7 @@ export default function CheckoutSuccessPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-below-header items-center justify-center">
         <Spin size="large" />
       </div>
     );

@@ -31,7 +31,7 @@ function VerifyOTPContent() {
             message.error('Email is required for verification');
             router.push('/login');
         }
-    }, [email, router]);
+    }, [email, router, message]);
 
     useEffect(() => {
         if (resendTimer > 0) {

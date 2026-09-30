@@ -22,6 +22,14 @@ const notificationSchema = new mongoose.Schema(
         'order_cancelled',
         'order_refunded',
         'order_status_update',
+        // A delivery-day (or admin-triggered) availability check found a
+        // stock/price issue the customer needs to act on.
+        'order_action_required',
+        // The order's final amount/items changed after the customer (or
+        // admin) resolved such an issue.
+        'order_updated',
+        // A loyalty-milestone coupon was auto-granted (see loyaltyService).
+        'coupon_unlocked',
         'message',
         'promotion',
         'system',

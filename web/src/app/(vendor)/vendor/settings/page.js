@@ -6,7 +6,6 @@ import {
   Form,
   Input,
   Button,
-  Upload,
   Avatar,
   Row,
   Col,
@@ -15,8 +14,6 @@ import {
   Select,
   message,
   Tabs,
-  Space,
-  InputNumber,
 } from 'antd';
 import {
   UserOutlined,
@@ -27,7 +24,6 @@ import {
   BankOutlined,
   BellOutlined,
   ShopOutlined,
-  GlobalOutlined,
 } from '@ant-design/icons';
 import { apiClient } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';

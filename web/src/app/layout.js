@@ -1,9 +1,18 @@
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
-import { App, ConfigProvider } from "antd";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+
+// Runs before paint to avoid a light-mode flash for users with dark saved.
+const noFlashThemeScript = `
+try {
+  var stored = JSON.parse(localStorage.getItem('green-basket-theme'));
+  var theme = stored && stored.state && stored.state.theme;
+  if (theme === 'dark') document.documentElement.classList.add('dark');
+} catch (e) {}
+`;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,34 +60,29 @@ export const metadata = {
   },
   robots:
     "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=5",
   alternates: {
     canonical: process.env.NEXT_PUBLIC_APP_URL || "https://apnabazaar.com",
   },
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head></head>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: noFlashThemeScript }} />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased   `}>
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}>
         <QueryProvider>
           <AuthProvider>
             <AntdRegistry>
-              <ConfigProvider
-                theme={{
-                  token: {
-                    colorPrimary: "#16A34A", // Fresh green primary color
-                    colorSuccess: "#22C55E", // Light green for success
-                    colorWarning: "#FACC15", // Yellow accent
-                    colorInfo: "#16A34A",
-                    borderRadius: 8,
-                    fontFamily: "var(--font-geist-sans)",
-                  },
-                }}>
-                <App>{children}</App>
-              </ConfigProvider>
+              <ThemeProvider>{children}</ThemeProvider>
             </AntdRegistry>
           </AuthProvider>
         </QueryProvider>

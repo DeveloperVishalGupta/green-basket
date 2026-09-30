@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/layout/Header';
+import DeliveryPreferenceModal from '@/components/delivery/DeliveryPreferenceModal';
 
 /**
  * Shop Layout
@@ -43,6 +44,7 @@ export default function ShopLayout({ children }) {
 
   // Allow access for customers and unauthenticated users (for browsing)
   return <>
-  {/* <Header/> */}
+  <Header/>
+  <DeliveryPreferenceModal />
   {children}</>;
 }

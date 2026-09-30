@@ -10,23 +10,12 @@ import { Alert, Spin } from "antd";
 import Link from "next/link";
 import CategoryCard from "./CategoryCard";
 
-// Custom arrow components for Carousel
-const CustomPrevArrow = ({ currentSlide, slideCount, ...props }) => (
-  <button {...props} className="slick-prev">
-    {/* <LeftOutlined /> */}Prev
-  </button>
-);
-
-const CustomNextArrow = ({ currentSlide, slideCount, ...props }) => (
-  <button {...props} className="slick-next">
-    {/* <RightOutlined /> */}Next
-  </button>
-);
-
 export default function CategoriesSection() {
   const { data, isLoading, error } = useCategories();
 
-  const categories = data?.data || [];
+  const categories = (data?.data || [])
+    .filter((category) => (category.productCount || 0) > 0)
+    .sort((a, b) => (b.productCount || 0) - (a.productCount || 0));
 
   if (error) {
     return (

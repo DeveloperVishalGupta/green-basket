@@ -285,6 +285,18 @@ export const NAV_ITEMS = [
 /**
  * Footer links
  */
+/**
+ * Indian states — used by the address form's state <Select>
+ */
+export const INDIAN_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+  "Uttar Pradesh", "Uttarakhand", "West Bengal",
+];
+
 export const FOOTER_LINKS = {
   company: [
     { label: "About Us", href: "/about" },

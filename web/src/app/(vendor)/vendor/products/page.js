@@ -1,37 +1,35 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
 import {
-  Card,
-  Table,
-  Button,
-  Input,
-  Select,
-  Tag,
-  Space,
-  Modal,
-  Form,
-  InputNumber,
-  Upload,
-  message,
-  Image,
-  Popconfirm,
-  Row,
-  Col,
-  Statistic,
-  Switch,
-  Drawer,
-} from 'antd';
-import {
+  DeleteOutlined,
+  EditOutlined,
+  FilterOutlined,
   PlusOutlined,
   SearchOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
   UploadOutlined,
-  FilterOutlined,
-} from '@ant-design/icons';
-import { apiClient } from '@/lib/api';
+} from "@ant-design/icons";
+import {
+  Button,
+  Card,
+  Col,
+  Drawer,
+  Form,
+  Image,
+  Input,
+  InputNumber,
+  Modal,
+  Popconfirm,
+  Row,
+  Select,
+  Space,
+  Statistic,
+  Switch,
+  Table,
+  Tag,
+  Upload,
+  message,
+} from "antd";
+import { useEffect, useState } from "react";
 
 const { TextArea } = Input;
 
@@ -46,9 +44,9 @@ export default function VendorProducts() {
   const [modalOpen, setModalOpen] = useState(false);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [searchText, setSearchText] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchText, setSearchText] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [isMobile, setIsMobile] = useState(false);
   const [form] = Form.useForm();
 
@@ -57,8 +55,8 @@ export default function VendorProducts() {
       setIsMobile(window.innerWidth < 768);
     };
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -71,45 +69,45 @@ export default function VendorProducts() {
       // Replace with actual API call
       const mockProducts = [
         {
-          key: '1',
+          key: "1",
           id: 1,
-          name: 'Summer Floral Dress',
-          category: 'Dresses',
+          name: "Summer Floral Dress",
+          category: "Dresses",
           price: 2499,
           stock: 45,
-          status: 'active',
-          image: 'https://via.placeholder.com/60',
+          status: "active",
+          image: "https://via.placeholder.com/60",
           sales: 234,
           featured: true,
         },
         {
-          key: '2',
+          key: "2",
           id: 2,
-          name: 'Winter Leather Jacket',
-          category: 'Jackets',
+          name: "Winter Leather Jacket",
+          category: "Jackets",
           price: 5999,
           stock: 12,
-          status: 'active',
-          image: 'https://via.placeholder.com/60',
+          status: "active",
+          image: "https://via.placeholder.com/60",
           sales: 189,
           featured: false,
         },
         {
-          key: '3',
+          key: "3",
           id: 3,
-          name: 'Casual Cotton Shirt',
-          category: 'Shirts',
+          name: "Casual Cotton Shirt",
+          category: "Shirts",
           price: 1299,
           stock: 0,
-          status: 'out_of_stock',
-          image: 'https://via.placeholder.com/60',
+          status: "out_of_stock",
+          image: "https://via.placeholder.com/60",
           sales: 156,
           featured: false,
         },
       ];
       setProducts(mockProducts);
     } catch (error) {
-      message.error('Failed to fetch products');
+      message.error("Failed to fetch products");
     } finally {
       setLoading(false);
     }
@@ -130,10 +128,10 @@ export default function VendorProducts() {
   const handleDeleteProduct = async (id) => {
     try {
       // await apiClient.delete(`/api/products/${id}`);
-      message.success('Product deleted successfully');
+      message.success("Product deleted successfully");
       fetchProducts();
     } catch (error) {
-      message.error('Failed to delete product');
+      message.error("Failed to delete product");
     }
   };
 
@@ -148,24 +146,24 @@ export default function VendorProducts() {
 
       if (editingProduct) {
         // await apiClient.put(`/api/products/${editingProduct.id}`, formData);
-        message.success('Product updated successfully');
+        message.success("Product updated successfully");
       } else {
         // await apiClient.post('/api/products', formData);
-        message.success('Product created successfully');
+        message.success("Product created successfully");
       }
       setModalOpen(false);
       fetchProducts();
     } catch (error) {
-      message.error('Failed to save product');
+      message.error("Failed to save product");
     }
   };
 
   const columns = [
     {
-      title: 'Product',
-      dataIndex: 'name',
-      key: 'name',
-      fixed: isMobile ? false : 'left',
+      title: "Product",
+      dataIndex: "name",
+      key: "name",
+      fixed: isMobile ? false : "left",
       width: isMobile ? 200 : 300,
       render: (name, record) => (
         <div className="flex items-center gap-3">
@@ -178,51 +176,55 @@ export default function VendorProducts() {
             preview={false}
           />
           <div className="flex-1 min-w-0">
-            <div className="font-medium text-sm md:text-base truncate">{name}</div>
+            <div className="font-medium text-sm md:text-base truncate">
+              {name}
+            </div>
             <div className="text-xs text-gray-500">{record.category}</div>
           </div>
         </div>
       ),
     },
     {
-      title: 'Price',
-      dataIndex: 'price',
-      key: 'price',
-      responsive: ['md'],
-      render: (price) => <span className="font-semibold">₹{price.toLocaleString()}</span>,
+      title: "Price",
+      dataIndex: "price",
+      key: "price",
+      responsive: ["md"],
+      render: (price) => (
+        <span className="font-semibold">₹{price.toLocaleString()}</span>
+      ),
     },
     {
-      title: 'Stock',
-      dataIndex: 'stock',
-      key: 'stock',
-      responsive: ['lg'],
+      title: "Stock",
+      dataIndex: "stock",
+      key: "stock",
+      responsive: ["lg"],
       render: (stock) => (
-        <Tag color={stock === 0 ? 'red' : stock < 20 ? 'orange' : 'green'}>
-          {stock === 0 ? 'Out of Stock' : `${stock} units`}
+        <Tag color={stock === 0 ? "red" : stock < 20 ? "orange" : "green"}>
+          {stock === 0 ? "Out of Stock" : `${stock} units`}
         </Tag>
       ),
     },
     {
-      title: 'Sales',
-      dataIndex: 'sales',
-      key: 'sales',
-      responsive: ['xl'],
+      title: "Sales",
+      dataIndex: "sales",
+      key: "sales",
+      responsive: ["xl"],
       sorter: (a, b) => a.sales - b.sales,
     },
     {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
       render: (status) => (
-        <Tag color={status === 'active' ? 'green' : 'red'}>
-          {status === 'active' ? 'Active' : 'Out of Stock'}
+        <Tag color={status === "active" ? "green" : "red"}>
+          {status === "active" ? "Active" : "Out of Stock"}
         </Tag>
       ),
     },
     {
-      title: 'Actions',
-      key: 'actions',
-      fixed: isMobile ? false : 'right',
+      title: "Actions",
+      key: "actions",
+      fixed: isMobile ? false : "right",
       width: isMobile ? 100 : 150,
       render: (_, record) => (
         <Space size="small">
@@ -230,20 +232,15 @@ export default function VendorProducts() {
             type="text"
             icon={<EditOutlined />}
             onClick={() => handleEditProduct(record)}
-            className="!text-blue-600"
+            className="text-blue-600!"
           />
           <Popconfirm
             title="Delete product?"
             description="This action cannot be undone."
             onConfirm={() => handleDeleteProduct(record.id)}
             okText="Yes"
-            cancelText="No"
-          >
-            <Button
-              type="text"
-              icon={<DeleteOutlined />}
-              danger
-            />
+            cancelText="No">
+            <Button type="text" icon={<DeleteOutlined />} danger />
           </Popconfirm>
         </Space>
       ),
@@ -251,28 +248,32 @@ export default function VendorProducts() {
   ];
 
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchText.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || product.category === filterCategory;
-    const matchesStatus = filterStatus === 'all' || product.status === filterStatus;
+    const matchesSearch = product.name
+      .toLowerCase()
+      .includes(searchText.toLowerCase());
+    const matchesCategory =
+      filterCategory === "all" || product.category === filterCategory;
+    const matchesStatus =
+      filterStatus === "all" || product.status === filterStatus;
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
   const productStats = [
     {
-      title: 'Total Products',
+      title: "Total Products",
       value: products.length,
-      suffix: 'items',
+      suffix: "items",
     },
     {
-      title: 'Active',
-      value: products.filter((p) => p.status === 'active').length,
+      title: "Active",
+      value: products.filter((p) => p.status === "active").length,
     },
     {
-      title: 'Out of Stock',
+      title: "Out of Stock",
       value: products.filter((p) => p.stock === 0).length,
     },
     {
-      title: 'Featured',
+      title: "Featured",
       value: products.filter((p) => p.featured).length,
     },
   ];
@@ -285,10 +286,10 @@ export default function VendorProducts() {
         onChange={setFilterCategory}
         className="w-full"
         options={[
-          { label: 'All Categories', value: 'all' },
-          { label: 'Dresses', value: 'Dresses' },
-          { label: 'Jackets', value: 'Jackets' },
-          { label: 'Shirts', value: 'Shirts' },
+          { label: "All Categories", value: "all" },
+          { label: "Dresses", value: "Dresses" },
+          { label: "Jackets", value: "Jackets" },
+          { label: "Shirts", value: "Shirts" },
         ]}
       />
       <Select
@@ -297,9 +298,9 @@ export default function VendorProducts() {
         onChange={setFilterStatus}
         className="w-full"
         options={[
-          { label: 'All Status', value: 'all' },
-          { label: 'Active', value: 'active' },
-          { label: 'Out of Stock', value: 'out_of_stock' },
+          { label: "All Status", value: "all" },
+          { label: "Active", value: "active" },
+          { label: "Out of Stock", value: "out_of_stock" },
         ]}
       />
     </Space>
@@ -310,7 +311,9 @@ export default function VendorProducts() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Products</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+            Products
+          </h1>
           <p className="text-sm md:text-base text-gray-600 mt-1">
             Manage your product inventory
           </p>
@@ -320,8 +323,7 @@ export default function VendorProducts() {
           icon={<PlusOutlined />}
           size="large"
           onClick={handleAddProduct}
-          className="!bg-emerald-600 hover:!bg-emerald-700 w-full sm:w-auto"
-        >
+          className="bg-emerald-600! hover:bg-emerald-700! w-full sm:w-auto">
           Add Product
         </Button>
       </div>
@@ -335,7 +337,7 @@ export default function VendorProducts() {
                 title={<span className="text-xs md:text-sm">{stat.title}</span>}
                 value={stat.value}
                 suffix={stat.suffix}
-                valueStyle={{ fontSize: isMobile ? '20px' : '24px' }}
+                valueStyle={{ fontSize: isMobile ? "20px" : "24px" }}
               />
             </Card>
           </Col>
@@ -353,14 +355,13 @@ export default function VendorProducts() {
             size="large"
             className="flex-1"
           />
-          
+
           {/* Mobile Filter Button */}
           {isMobile ? (
             <Button
               icon={<FilterOutlined />}
               size="large"
-              onClick={() => setFilterDrawerOpen(true)}
-            >
+              onClick={() => setFilterDrawerOpen(true)}>
               Filters
             </Button>
           ) : (
@@ -373,10 +374,10 @@ export default function VendorProducts() {
                 style={{ width: 150 }}
                 size="large"
                 options={[
-                  { label: 'All Categories', value: 'all' },
-                  { label: 'Dresses', value: 'Dresses' },
-                  { label: 'Jackets', value: 'Jackets' },
-                  { label: 'Shirts', value: 'Shirts' },
+                  { label: "All Categories", value: "all" },
+                  { label: "Dresses", value: "Dresses" },
+                  { label: "Jackets", value: "Jackets" },
+                  { label: "Shirts", value: "Shirts" },
                 ]}
               />
               <Select
@@ -386,9 +387,9 @@ export default function VendorProducts() {
                 style={{ width: 150 }}
                 size="large"
                 options={[
-                  { label: 'All Status', value: 'all' },
-                  { label: 'Active', value: 'active' },
-                  { label: 'Out of Stock', value: 'out_of_stock' },
+                  { label: "All Status", value: "all" },
+                  { label: "Active", value: "active" },
+                  { label: "Out of Stock", value: "out_of_stock" },
                 ]}
               />
             </Space>
@@ -402,8 +403,7 @@ export default function VendorProducts() {
         placement="right"
         onClose={() => setFilterDrawerOpen(false)}
         open={filterDrawerOpen}
-        width={300}
-      >
+        width={300}>
         <FilterContent />
       </Drawer>
 
@@ -413,7 +413,7 @@ export default function VendorProducts() {
           columns={columns}
           dataSource={filteredProducts}
           loading={loading}
-          scroll={{ x: 'max-content' }}
+          scroll={{ x: "max-content" }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
@@ -425,26 +425,25 @@ export default function VendorProducts() {
 
       {/* Add/Edit Product Modal */}
       <Modal
-        title={editingProduct ? 'Edit Product' : 'Add New Product'}
+        title={editingProduct ? "Edit Product" : "Add New Product"}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         footer={null}
-        width={isMobile ? '100%' : 700}
-        style={isMobile ? { top: 0, paddingBottom: 0 } : {}}
-      >
+        width={isMobile ? "100%" : 700}
+        style={isMobile ? { top: 0, paddingBottom: 0 } : {}}>
         <Form
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
-          className="mt-4"
-        >
+          className="mt-4">
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Form.Item
                 label="Product Name"
                 name="name"
-                rules={[{ required: true, message: 'Please enter product name' }]}
-              >
+                rules={[
+                  { required: true, message: "Please enter product name" },
+                ]}>
                 <Input size="large" placeholder="e.g., Summer Dress" />
               </Form.Item>
             </Col>
@@ -452,25 +451,21 @@ export default function VendorProducts() {
               <Form.Item
                 label="Category"
                 name="category"
-                rules={[{ required: true, message: 'Please select category' }]}
-              >
+                rules={[{ required: true, message: "Please select category" }]}>
                 <Select
                   size="large"
                   placeholder="Select category"
                   options={[
-                    { label: 'Dresses', value: 'Dresses' },
-                    { label: 'Jackets', value: 'Jackets' },
-                    { label: 'Shirts', value: 'Shirts' },
+                    { label: "Dresses", value: "Dresses" },
+                    { label: "Jackets", value: "Jackets" },
+                    { label: "Shirts", value: "Shirts" },
                   ]}
                 />
               </Form.Item>
             </Col>
           </Row>
 
-          <Form.Item
-            label="Description"
-            name="description"
-          >
+          <Form.Item label="Description" name="description">
             <TextArea rows={3} placeholder="Product description" />
           </Form.Item>
 
@@ -479,8 +474,7 @@ export default function VendorProducts() {
               <Form.Item
                 label="Price (₹)"
                 name="price"
-                rules={[{ required: true, message: 'Please enter price' }]}
-              >
+                rules={[{ required: true, message: "Please enter price" }]}>
                 <InputNumber
                   size="large"
                   className="w-full"
@@ -493,8 +487,7 @@ export default function VendorProducts() {
               <Form.Item
                 label="Stock"
                 name="stock"
-                rules={[{ required: true, message: 'Please enter stock' }]}
-              >
+                rules={[{ required: true, message: "Please enter stock" }]}>
                 <InputNumber
                   size="large"
                   className="w-full"
@@ -507,19 +500,14 @@ export default function VendorProducts() {
               <Form.Item
                 label="Featured"
                 name="featured"
-                valuePropName="checked"
-              >
+                valuePropName="checked">
                 <Switch />
               </Form.Item>
             </Col>
           </Row>
 
           <Form.Item label="Product Images" name="images">
-            <Upload
-              listType="picture-card"
-              maxCount={5}
-              accept="image/*"
-            >
+            <Upload listType="picture-card" maxCount={5} accept="image/*">
               <div>
                 <UploadOutlined />
                 <div style={{ marginTop: 8 }}>Upload</div>
@@ -529,15 +517,12 @@ export default function VendorProducts() {
 
           <Form.Item className="mb-0 mt-6">
             <Space className="w-full justify-end">
-              <Button onClick={() => setModalOpen(false)}>
-                Cancel
-              </Button>
+              <Button onClick={() => setModalOpen(false)}>Cancel</Button>
               <Button
                 type="primary"
                 htmlType="submit"
-                className="!bg-emerald-600 hover:!bg-emerald-700"
-              >
-                {editingProduct ? 'Update' : 'Create'} Product
+                className="bg-emerald-600! hover:bg-emerald-700!">
+                {editingProduct ? "Update" : "Create"} Product
               </Button>
             </Space>
           </Form.Item>

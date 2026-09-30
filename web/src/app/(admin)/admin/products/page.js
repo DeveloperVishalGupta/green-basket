@@ -451,6 +451,7 @@ export default function AdminProducts() {
         setViewModalVisible={setViewModalVisible}
         viewingProduct={viewingProduct}
         setViewingProduct={setViewingProduct}
+        handleEdit={handleEdit}
       />
       {/* Delete Confirmation Modal */}
       <Modal
@@ -649,7 +650,7 @@ export default function AdminProducts() {
                 What will be cloned:
               </p>
               <ul className="text-sm text-gray-600 space-y-1 ml-4">
-                <li>✓ Product name (with "(Copy)" suffix)</li>
+                <li>✓ Product name (with &quot;(Copy)&quot; suffix)</li>
                 <li>✓ Description and pricing details</li>
                 <li>✓ Category, </li>
                 <li>✓ Tags and SEO information</li>

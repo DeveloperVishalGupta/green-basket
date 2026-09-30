@@ -4,6 +4,26 @@ import Product from '../models/Product.js';
 import User from '../models/User.js';
 
 /**
+ * Formats a raw stockUnit amount (e.g. 1500 "g") into a shopping-friendly
+ * string — converting to the larger unit (kg/L) once it crosses 1000, and
+ * pluralizing count-based units (piece/bunch/packet/box).
+ */
+function formatShoppingAmount(amount, stockUnit) {
+  const round = (n) => Math.round(n * 100) / 100;
+
+  if (stockUnit === 'g' || stockUnit === 'ml') {
+    const bigUnit = stockUnit === 'g' ? 'kg' : 'L';
+    if (amount >= 1000) {
+      return `${round(amount / 1000)} ${bigUnit}`;
+    }
+    return `${round(amount)} ${stockUnit}`;
+  }
+
+  const label = amount === 1 ? stockUnit : `${stockUnit}s`;
+  return `${round(amount)} ${label}`;
+}
+
+/**
  * Admin Controller
  * Handles admin dashboard analytics and management operations
  */
@@ -685,6 +705,140 @@ class AdminController {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch order analytics',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Shopping list for a delivery date: every variant of a product ordered
+   * that day is converted to a real amount (using that variant's `quantity`
+   * and the product's `stockUnit`) and summed into one total weight/volume/
+   * count per product, so the admin knows e.g. "Tomatoes: 3.5 kg" instead of
+   * separate, hard-to-add-up rows per variant.
+   * @route GET /api/admin/orders/shopping-list?date=YYYY-MM-DD
+   * @access Private (Admin only)
+   */
+  async getShoppingList(req, res) {
+    try {
+      const { date } = req.query;
+
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return res.status(400).json({
+          success: false,
+          message: 'A valid date (YYYY-MM-DD) is required',
+        });
+      }
+
+      // Orders are matched by re-deriving the same "YYYY-MM-DD" id their
+      // deliveryDate was created from (see deliveryCapacity.js toDateId),
+      // rather than a local start/end-of-day range, to avoid timezone drift.
+      const dateMatch = {
+        $expr: {
+          $eq: [
+            { $dateToString: { format: '%Y-%m-%d', date: '$deliveryDate' } },
+            date,
+          ],
+        },
+        status: { $nin: ['cancelled', 'refunded'] },
+      };
+
+      // Step 1: sum ordered units per product+variant (Mongo does the
+      // heavy lifting of unwinding/summing across every order).
+      const [variantRows, orderCount] = await Promise.all([
+        Order.aggregate([
+          { $match: dateMatch },
+          { $unwind: '$items' },
+          {
+            // Skip line items the customer/admin already removed during an
+            // availability resolution; use the fulfilled quantity when one
+            // was set (e.g. partial-stock acceptance), else the ordered qty.
+            $match: { 'items.resolution.action': { $ne: 'remove' } },
+          },
+          {
+            $addFields: {
+              effectiveQty: {
+                $ifNull: ['$items.fulfilledQuantity', '$items.quantity'],
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                product: '$items.product',
+                name: '$items.name',
+                variant: '$items.variant',
+              },
+              unitsOrdered: { $sum: '$effectiveQty' },
+              orderCount: { $sum: 1 },
+            },
+          },
+        ]),
+        Order.countDocuments(dateMatch),
+      ]);
+
+      // Step 2: look up each referenced product's variants + stockUnit, to
+      // turn "3 units of the 500g variant" into "1500 g".
+      const productIds = [
+        ...new Set(
+          variantRows.map((r) => r._id.product?.toString()).filter(Boolean),
+        ),
+      ];
+      const products = await Product.find(
+        { _id: { $in: productIds } },
+        'name stockUnit variants',
+      ).lean();
+      const productById = new Map(products.map((p) => [p._id.toString(), p]));
+
+      // Step 3: merge every variant of the same product into one running
+      // total (in the product's own stockUnit), then format it for display.
+      const totalsByProduct = new Map();
+      for (const row of variantRows) {
+        const productId = row._id.product?.toString();
+        const product = productId ? productById.get(productId) : null;
+        const stockUnit = product?.stockUnit || 'piece';
+        const variant = product?.variants?.find(
+          (v) => v.label === row._id.variant,
+        );
+        // How much one ordered "unit" of this variant actually is, e.g. 500
+        // for a "500g" variant — falls back to 1 if the variant/product
+        // can't be found (e.g. deleted since the order was placed).
+        const amountPerUnit = variant?.quantity ?? 1;
+
+        const key = productId || row._id.name;
+        const existing = totalsByProduct.get(key) || {
+          name: row._id.name,
+          stockUnit,
+          totalAmount: 0,
+          unitsOrdered: 0,
+          orderCount: 0,
+        };
+        existing.totalAmount += amountPerUnit * row.unitsOrdered;
+        existing.unitsOrdered += row.unitsOrdered;
+        existing.orderCount += row.orderCount;
+        totalsByProduct.set(key, existing);
+      }
+
+      const items = [...totalsByProduct.values()]
+        .map((p) => ({
+          name: p.name,
+          unitsOrdered: p.unitsOrdered,
+          orderCount: p.orderCount,
+          totalAmount: p.totalAmount,
+          stockUnit: p.stockUnit,
+          displayWeight: formatShoppingAmount(p.totalAmount, p.stockUnit),
+        }))
+        .sort((a, b) => b.totalAmount - a.totalAmount);
+
+      res.json({
+        success: true,
+        data: { date, orderCount, items },
+      });
+    } catch (error) {
+      console.error('Get shopping list error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch shopping list',
         error: error.message,
       });
     }

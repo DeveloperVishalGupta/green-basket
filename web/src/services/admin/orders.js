@@ -70,6 +70,17 @@ const OrdersService = {
     return resp.data;
   },
 
+  /**
+   * Re-check a scheduled order's items against live stock/prices —
+   * "check actual stock before preparing" — and notify the customer of
+   * anything they need to act on.
+   * @param {string} id - Order ID
+   */
+  verifyAvailability: async (id) => {
+    const resp = await api.post(`/api/orders/${id}/verify-availability`);
+    return resp.data;
+  },
+
   createShipment: async (shipmentData) => {
     const resp = await api.post('/api/shipment/create', shipmentData);
     return resp.data;

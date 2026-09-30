@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import PageHeader from '@/components/layout/PageHeader';
 import { Button } from 'antd';
 import { useRouter } from 'next/navigation';
 
@@ -12,22 +12,8 @@ export default function PrivacyPage() {
     const router = useRouter();
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <button
-                            onClick={() => router.back()}
-                            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-all"
-                        >
-                            <ArrowLeftOutlined className="text-xl" />
-                        </button>
-                        <h1 className="text-xl font-bold text-gray-900">Privacy Policy</h1>
-                        <div className="w-10"></div>
-                    </div>
-                </div>
-            </header>
+        <div className="min-h-below-header bg-gray-50">
+            <PageHeader title="Privacy Policy" maxWidth="max-w-4xl" />
 
             {/* Content */}
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -218,7 +204,7 @@ export default function PrivacyPage() {
                                 
                                 <p><strong>6.3 Deletion:</strong> Request deletion of your personal information, subject to legal obligations.</p>
                                 
-                                <p><strong>6.4 Opt-Out:</strong> Unsubscribe from marketing emails by clicking the "unsubscribe" link in our emails.</p>
+                                <p><strong>6.4 Opt-Out:</strong> Unsubscribe from marketing emails by clicking the &quot;unsubscribe&quot; link in our emails.</p>
                                 
                                 <p><strong>6.5 Data Portability:</strong> Request a copy of your data in a structured, machine-readable format.</p>
                                 
@@ -247,7 +233,7 @@ export default function PrivacyPage() {
 
                     {/* 8. Children's Privacy */}
                     <section className="mb-8">
-                        <h3 className="text-xl font-bold text-gray-900 mb-3">8. Children's Privacy</h3>
+                        <h3 className="text-xl font-bold text-gray-900 mb-3">8. Children&apos;s Privacy</h3>
                         <div className="space-y-3 text-gray-700">
                             <p className="leading-relaxed">
                                 Our Platform is not intended for children under 18 years of age. We do not knowingly collect 
@@ -276,7 +262,7 @@ export default function PrivacyPage() {
                             <p className="leading-relaxed">
                                 We may update this Privacy Policy from time to time to reflect changes in our practices or legal 
                                 requirements. We will notify you of significant changes by posting a notice on our Platform or 
-                                sending an email. The "Last Updated" date at the top indicates when the policy was last revised.
+                                sending an email. The &quot;Last Updated&quot; date at the top indicates when the policy was last revised.
                             </p>
                         </div>
                     </section>
@@ -303,7 +289,7 @@ export default function PrivacyPage() {
                     <section className="border-t border-gray-200 pt-6">
                         <div className="bg-emerald-50 p-4 rounded-lg">
                             <p className="text-sm text-gray-700">
-                                <strong>Your Consent:</strong> By using Green Basket's Platform, you acknowledge that you have 
+                                <strong>Your Consent:</strong> By using Green Basket&apos;s Platform, you acknowledge that you have 
                                 read, understood, and agree to the collection, use, and disclosure of your information as 
                                 described in this Privacy Policy.
                             </p>

@@ -1,16 +1,20 @@
 "use client";
 
 import BottomNav from "@/components/layout/BottomNav";
+import Header from "@/components/layout/Header";
+import PageHeader from "@/components/layout/PageHeader";
 import HelpCenterModal from "@/components/ui/HelpCenterModal";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyCoupons } from "@/hooks/useCoupons";
 import { useOrders } from "@/hooks/useOrders";
 import {
-  ArrowLeftOutlined,
   BellOutlined,
+  CopyOutlined,
   CrownOutlined,
   CustomerServiceOutlined,
   EnvironmentOutlined,
   FileTextOutlined,
+  GiftOutlined,
   HeartOutlined,
   LogoutOutlined,
   MailOutlined,
@@ -23,13 +27,12 @@ import {
   UserOutlined,
   WalletOutlined,
 } from "@ant-design/icons";
-import { Badge, Card, message, Modal, Progress, Tag } from "antd";
+import { Badge, message, Modal, Progress, Spin, Tag } from "antd";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 /**
- * Enhanced Profile Page
- * Modern and user-friendly profile interface
+ * Profile Page
  * Accessible by all user roles (customer, admin, vendor)
  */
 export default function ProfilePage() {
@@ -38,133 +41,14 @@ export default function ProfilePage() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const { user, logout, loading } = useAuth();
   const { data: ordersData } = useOrders();
+  const { data: couponsData } = useMyCoupons({ enabled: user?.role === "customer" });
+  const coupons = couponsData?.data || [];
+  const availableCoupons = coupons.filter((c) => !c.isUsed);
   const [stats, setStats] = useState({
     orders: 0,
     completed: 0,
     points: 0,
   });
-
-  if (loading || !user) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-linear-to-br from-emerald-50 to-teal-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading your profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      // message.success('Logged out successfully');
-    } catch (error) {
-      message.error("Logout failed", error.message);
-    }
-  };
-
-  // Role-based menu items
-  const getAccountOptions = () => {
-    const common = [
-      {
-        icon: <ShoppingOutlined className="text-xl" />,
-        iconBg: "bg-blue-100",
-        iconColor: "text-blue-600",
-        label: "My Orders",
-        description: "View and track orders",
-        onClick: () => router.push("/orders"),
-      },
-      {
-        icon: <EnvironmentOutlined className="text-xl" />,
-        iconBg: "bg-green-100",
-        iconColor: "text-green-600",
-        label: "Addresses",
-        description: "Manage delivery addresses",
-        onClick: () => router.push("/addresses"),
-      },
-      {
-        icon: <HeartOutlined className="text-xl" />,
-        iconBg: "bg-red-100",
-        iconColor: "text-red-600",
-        label: "Wishlist",
-        description: "Your saved items",
-        onClick: () => router.push("/wishlist"),
-        badge: user.wishlist?.length || 0,
-      },
-      {
-        icon: <WalletOutlined className="text-xl" />,
-        iconBg: "bg-purple-100",
-        iconColor: "text-purple-600",
-        label: "Wallet & Rewards",
-        description: `₹${user.wallet || 0} balance`,
-        onClick: () => message.info("Wallet coming soon!"),
-      },
-    ];
-
-    if (user.role === "admin") {
-      return [
-        {
-          icon: <CrownOutlined className="text-xl" />,
-          iconBg: "bg-red-100",
-          iconColor: "text-red-600",
-          label: "Admin Dashboard",
-          description: "Manage your store",
-          onClick: () => router.push("/admin/dashboard"),
-        },
-        ...common,
-      ];
-    }
-
-    if (user.role === "vendor") {
-      return [
-        {
-          icon: <ShopOutlined className="text-xl" />,
-          iconBg: "bg-indigo-100",
-          iconColor: "text-indigo-600",
-          label: "Vendor Dashboard",
-          description: "Manage products",
-          onClick: () => router.push("/vendor/dashboard"),
-        },
-        ...common,
-      ];
-    }
-
-    return common;
-  };
-
-  const getSettingsOptions = () => [
-    {
-      icon: <BellOutlined className="text-xl" />,
-      iconBg: "bg-yellow-100",
-      iconColor: "text-yellow-600",
-      label: "Notifications",
-      description: "Manage alerts",
-      onClick: () => router.push("/notifications"),
-    },
-    {
-      icon: <CustomerServiceOutlined className="text-xl" />,
-      iconBg: "bg-pink-100",
-      iconColor: "text-pink-600",
-      label: "Help & Support",
-      description: "Get assistance",
-      onClick: () => setHelpModalVisible(true),
-    },
-    {
-      icon: <FileTextOutlined className="text-xl" />,
-      iconBg: "bg-gray-100",
-      iconColor: "text-gray-600",
-      label: "Terms & Policies",
-      description: "Legal information",
-      onClick: () => router.push("/terms-and-policies"),
-    },
-  ];
-
-  const accountOptions = getAccountOptions();
-  const settingsOptions = getSettingsOptions();
-
-  const completionRate =
-    stats.orders > 0 ? (stats.completed / stats.orders) * 100 : 0;
 
   useEffect(() => {
     // Calculate stats from orders data
@@ -190,139 +74,251 @@ export default function ProfilePage() {
     }
   }, [ordersData]);
 
-  return (
-    <div className="min-h-screen bg-white/95 pb-20 md:pb-4 lg:pl-0">
-      {/* Enhanced Header with Gradient */}
-      <header className="relative bg-linear-to-br from-emerald-600 via-emerald-700 to-teal-600 px-4 sm:px-6 py-6 sm:py-8 md:py-10 text-white overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
-          <div className="absolute bottom-0 right-0 w-64 h-64 bg-white rounded-full translate-x-1/2 translate-y-1/2 blur-3xl"></div>
+  if (loading || !user) {
+    return (
+      <>
+        <Header />
+        <div className="flex min-h-below-header items-center justify-center bg-white/95">
+          <div className="text-center">
+            <Spin size="large" />
+            <p className="mt-4 text-gray-600 font-medium">
+              Loading your profile...
+            </p>
+          </div>
         </div>
+      </>
+    );
+  }
 
-        <div className="relative mx-auto max-w-4xl">
-          <div className="flex gap-6 items-start">
-            {/* Back button */}
-            <button
-              onClick={() => router.back()}
-              className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm sm:mb-6 transition-all hover:scale-105 md:hidden">
-              <ArrowLeftOutlined className="text-base sm:text-xl" />
-            </button>
-            <div className="flex flex-col gap-1">
-              <div className="flex sm:flex-row items-center sm:items-center gap-2 ">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      message.error("Logout failed", error.message);
+    }
+  };
+
+  // Role-based menu items
+  const getAccountOptions = () => {
+    const common = [
+      {
+        icon: <ShoppingOutlined className="text-lg" />,
+        iconBg: "bg-blue-100",
+        iconColor: "text-blue-600",
+        label: "My Orders",
+        description: "View and track orders",
+        onClick: () => router.push("/orders"),
+      },
+      {
+        icon: <EnvironmentOutlined className="text-lg" />,
+        iconBg: "bg-green-100",
+        iconColor: "text-green-600",
+        label: "Addresses",
+        description: "Manage delivery addresses",
+        onClick: () => router.push("/addresses"),
+      },
+      {
+        icon: <HeartOutlined className="text-lg" />,
+        iconBg: "bg-red-100",
+        iconColor: "text-red-600",
+        label: "Wishlist",
+        description: "Your saved items",
+        onClick: () => router.push("/wishlist"),
+        badge: user.wishlist?.length || 0,
+      },
+      {
+        icon: <WalletOutlined className="text-lg" />,
+        iconBg: "bg-purple-100",
+        iconColor: "text-purple-600",
+        label: "Wallet & Rewards",
+        description: `₹${user.wallet || 0} balance`,
+        onClick: () => message.info("Wallet coming soon!"),
+      },
+    ];
+
+    if (user.role === "admin") {
+      return [
+        {
+          icon: <CrownOutlined className="text-lg" />,
+          iconBg: "bg-red-100",
+          iconColor: "text-red-600",
+          label: "Admin Dashboard",
+          description: "Manage your store",
+          onClick: () => router.push("/admin/dashboard"),
+        },
+        ...common,
+      ];
+    }
+
+    if (user.role === "vendor") {
+      return [
+        {
+          icon: <ShopOutlined className="text-lg" />,
+          iconBg: "bg-indigo-100",
+          iconColor: "text-indigo-600",
+          label: "Vendor Dashboard",
+          description: "Manage products",
+          onClick: () => router.push("/vendor/dashboard"),
+        },
+        ...common,
+      ];
+    }
+
+    return common;
+  };
+
+  const getSettingsOptions = () => [
+    {
+      icon: <BellOutlined className="text-lg" />,
+      iconBg: "bg-yellow-100",
+      iconColor: "text-yellow-600",
+      label: "Notifications",
+      description: "Manage alerts",
+      onClick: () => router.push("/notifications"),
+    },
+    {
+      icon: <CustomerServiceOutlined className="text-lg" />,
+      iconBg: "bg-pink-100",
+      iconColor: "text-pink-600",
+      label: "Help & Support",
+      description: "Get assistance",
+      onClick: () => setHelpModalVisible(true),
+    },
+    {
+      icon: <FileTextOutlined className="text-lg" />,
+      iconBg: "bg-gray-100",
+      iconColor: "text-gray-600",
+      label: "Terms & Policies",
+      description: "Legal information",
+      onClick: () => router.push("/terms-and-policies"),
+    },
+  ];
+
+  const accountOptions = getAccountOptions();
+  const settingsOptions = getSettingsOptions();
+
+  // Every 10 delivered orders unlocks a loyalty coupon (see
+  // services/loyaltyService.js on the backend) — this tracks progress
+  // toward that next milestone, not overall completion rate.
+  const REWARD_MILESTONE = 10;
+  const milestoneProgress = stats.completed % REWARD_MILESTONE;
+  const ordersUntilNextReward =
+    stats.completed > 0 && milestoneProgress === 0
+      ? REWARD_MILESTONE
+      : REWARD_MILESTONE - milestoneProgress;
+  const milestonePercent = (milestoneProgress / REWARD_MILESTONE) * 100;
+
+  const handleCopyCoupon = (code) => {
+    navigator.clipboard
+      .writeText(code)
+      .then(() => message.success(`Copied "${code}" to clipboard`))
+      .catch(() => message.error("Couldn't copy the code"));
+  };
+
+  const roleTagProps =
+    user.role === "admin"
+      ? { color: "red", icon: <CrownOutlined /> }
+      : user.role === "vendor"
+        ? { color: "blue", icon: <ShopOutlined /> }
+        : { color: "green", icon: <UserOutlined /> };
+
+  const OptionRow = ({ item, isLast }) => (
+    <button
+      onClick={item.onClick}
+      className={`flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-gray-50 ${
+        isLast ? "" : "border-b border-gray-100"
+      }`}>
+      <div
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${item.iconBg} ${item.iconColor}`}>
+        {item.icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="font-semibold text-sm text-gray-900 truncate">
+            {item.label}
+          </p>
+          {item.badge > 0 && (
+            <Badge count={item.badge} size="small" className="shrink-0" />
+          )}
+        </div>
+        <p className="text-xs text-gray-500 truncate">{item.description}</p>
+      </div>
+      <RightOutlined className="text-gray-400 text-xs shrink-0" />
+    </button>
+  );
+
+  return (
+    <div className="min-h-below-header bg-gray-50 pb-20 lg:pb-0">
+      <Header />
+      <PageHeader title="Profile" subtitle={user.email} />
+
+      <main className="mx-auto max-w-4xl px-4 py-4 space-y-4">
+        {/* Profile Summary */}
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xl font-bold text-emerald-700">
+              {user.firstName?.[0]}
+              {user.lastName?.[0]}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-lg font-bold text-gray-900 truncate">
                   {user.firstName} {user.lastName}
                 </h1>
                 <Tag
-                  color={
-                    user.role === "admin"
-                      ? "red"
-                      : user.role === "vendor"
-                        ? "blue"
-                        : "green"
-                  }
-                  icon={
-                    user.role === "admin" ? (
-                      <CrownOutlined />
-                    ) : user.role === "vendor" ? (
-                      <ShopOutlined />
-                    ) : (
-                      <UserOutlined />
-                    )
-                  }
-                  className="text-xs uppercase font-semibold px-3 py-1">
+                  {...roleTagProps}
+                  className="text-[10px] uppercase font-semibold m-0">
                   {user.role}
                 </Tag>
               </div>
-              <p className="text-sm font-semibold">
+              <p className="text-sm text-gray-600 truncate">
                 <MailOutlined /> {user.email}
               </p>
               {user.phone && (
-                <p className="font-semibold text-sm">
+                <p className="text-sm text-gray-600 truncate">
                   <PhoneOutlined /> {user.phone}
                 </p>
               )}
             </div>
           </div>
 
-          {/* User Profile Section */}
-          <div className="text-start"></div>
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6">
-            <div className=" text-center sm:text-left">
-              <div className="space-y-2 text-white/90"></div>
-
-              {/* Loyalty Badge */}
-              {/* {user.role === "customer" && (
-                <div className="mt-4 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2">
-                  <StarOutlined className="text-yellow-300" />
-                  <span className="text-sm font-semibold">
-                    {stats.points} Reward Points
-                  </span>
-                </div>
-              )} */}
-            </div>
-
-            {/* <div className="relative flex-1">
-                            <Avatar 
-                                size={{ xs: 160, sm: 96, md: 1120 }} 
-                                icon={<UserOutlined />} 
-                                className="bg-white/20 backdrop-blur-md border-4 border-white/30 shadow-2xl" 
-                            />
-                            <button 
-                                className="absolute bottom-0 right-0 h-8 w-8 sm:h-10 sm:w-10 bg-white/25 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
-                                onClick={() => message.info('Edit profile picture coming soon!')}
-                            >
-                                <EditOutlined className="text-emerald-600 text-sm sm:text-base" />
-                            </button>
-                        </div> */}
-          </div>
-
-          {/* Quick Stats for Customers */}
           {user.role === "customer" && (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-6">
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 sm:p-4 text-center border border-white/20">
-                <div className="text-2xl sm:text-3xl font-bold mb-1">
+            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-gray-100 pt-4">
+              <div className="rounded-lg bg-gray-50 p-3 text-center">
+                <div className="text-xl font-bold text-gray-900">
                   {stats.orders}
                 </div>
-                <div className="text-xs sm:text-sm opacity-90">
-                  Total Orders
-                </div>
+                <div className="text-xs text-gray-500">Total Orders</div>
               </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 sm:p-4 text-center border border-white/20">
-                <div className="text-2xl sm:text-3xl font-bold mb-1">
+              <div className="rounded-lg bg-gray-50 p-3 text-center">
+                <div className="text-xl font-bold text-gray-900">
                   {user.wishlist?.length || 0}
                 </div>
-                <div className="text-xs sm:text-sm opacity-90">Wishlist</div>
+                <div className="text-xs text-gray-500">Wishlist</div>
               </div>
-              {/* <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 sm:p-4 text-center border border-white/20">
-                <div className="text-2xl sm:text-3xl font-bold mb-1">
-                  ₹{user.wallet || 0}
-                </div>
-                <div className="text-xs sm:text-sm opacity-90">Wallet</div>
-              </div> */}
             </div>
           )}
         </div>
-      </header>
 
-      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-        {/* Achievement Card for Customers */}
-        {user.role === "customer" && completionRate > 0 && (
-          <Card className="shadow-md hover:shadow-lg transition-shadow border-0">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-linear-to-br from-yellow-400 to-orange-500 shrink-0">
-                <TrophyOutlined className="text-white text-xl sm:text-2xl" />
+        {/* Loyalty Milestone Progress for Customers */}
+        {user.role === "customer" && (
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-yellow-400 to-orange-500">
+                <TrophyOutlined className="text-white text-lg" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-base sm:text-lg text-gray-900 mb-1">
-                  Order Achievement
+                <h3 className="font-bold text-sm text-gray-900 mb-1">
+                  Next Reward
                 </h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  You've completed {stats.completed} out of {stats.orders}{" "}
-                  orders!
+                <p className="text-xs text-gray-600 mb-3">
+                  {ordersUntilNextReward === REWARD_MILESTONE &&
+                  stats.completed === 0
+                    ? `Complete ${REWARD_MILESTONE} orders to unlock a ₹50 coupon!`
+                    : `${ordersUntilNextReward} more delivered order${ordersUntilNextReward !== 1 ? "s" : ""} to unlock your next ₹50 coupon`}
                 </p>
                 <Progress
-                  percent={Math.round(completionRate)}
+                  percent={Math.round(milestonePercent)}
                   strokeColor={{
                     "0%": "#10b981",
                     "100%": "#059669",
@@ -331,89 +327,85 @@ export default function ProfilePage() {
                 />
               </div>
             </div>
-          </Card>
+          </div>
+        )}
+
+        {/* Unlocked Rewards */}
+        {user.role === "customer" && availableCoupons.length > 0 && (
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <GiftOutlined className="text-emerald-600" />
+              Your Rewards
+            </h2>
+            <div className="space-y-2">
+              {availableCoupons.map((coupon) => (
+                <div
+                  key={coupon._id}
+                  className="flex items-center gap-3 rounded-lg border-2 border-dashed border-amber-300 bg-amber-50 p-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm text-gray-900 tracking-wide">
+                      {coupon.code}
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      {coupon.discountType === "percentage"
+                        ? `${coupon.discountValue}% off`
+                        : `₹${coupon.discountValue} off`}
+                      {coupon.expiresAt &&
+                        ` · Valid until ${new Date(coupon.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleCopyCoupon(coupon.code)}
+                    className="flex shrink-0 items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 border border-amber-300 hover:bg-amber-100 transition-all">
+                    <CopyOutlined /> Copy
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Account Section */}
-        <div>
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <h2 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
             <UserOutlined className="text-emerald-600" />
             Account
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div>
             {accountOptions.map((item, index) => (
-              <Card
+              <OptionRow
                 key={index}
-                hoverable
-                className="border-0 shadow-sm hover:shadow-lg transition-all cursor-pointer"
-                onClick={item.onClick}>
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div
-                    className={`flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl ${item.iconBg} ${item.iconColor} shrink-0`}>
-                    {item.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm sm:text-base text-gray-900 truncate">
-                        {item.label}
-                      </p>
-                      {item.badge > 0 && (
-                        <Badge count={item.badge} className="shrink-0" />
-                      )}
-                    </div>
-                    <p className="text-xs sm:text-sm text-gray-600 truncate">
-                      {item.description}
-                    </p>
-                  </div>
-                  <RightOutlined className="text-gray-400 text-xs shrink-0" />
-                </div>
-              </Card>
+                item={item}
+                isLast={index === accountOptions.length - 1}
+              />
             ))}
           </div>
         </div>
 
         {/* Settings Section */}
-        <div>
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <h2 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
             <SettingOutlined className="text-emerald-600" />
             Settings & More
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div>
             {settingsOptions.map((item, index) => (
-              <Card
+              <OptionRow
                 key={index}
-                hoverable
-                className="border-0 shadow-sm hover:shadow-lg transition-all cursor-pointer"
-                onClick={item.onClick}>
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div
-                    className={`flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl ${item.iconBg} ${item.iconColor} shrink-0`}>
-                    {item.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm sm:text-base text-gray-900 truncate">
-                      {item.label}
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-600 truncate">
-                      {item.description}
-                    </p>
-                  </div>
-                  <RightOutlined className="text-gray-400 text-xs shrink-0" />
-                </div>
-              </Card>
+                item={item}
+                isLast={index === settingsOptions.length - 1}
+              />
             ))}
           </div>
         </div>
 
         {/* Logout Button */}
-        <Card className="border-2 border-red-100 shadow-sm hover:shadow-md transition-all">
-          <button
-            onClick={() => setLogoutModalVisible(true)}
-            className="w-full flex items-center justify-center gap-3 py-2 text-red-600 font-semibold text-base sm:text-lg hover:text-red-700 transition-colors">
-            <LogoutOutlined className="text-xl" />
-            Logout from Account
-          </button>
-        </Card>
+        <button
+          onClick={() => setLogoutModalVisible(true)}
+          className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-red-600 border-2 border-red-600 rounded-xl bg-white hover:bg-red-600 hover:text-white transition-all">
+          <LogoutOutlined />
+          Logout from Account
+        </button>
       </main>
 
       {/* Logout Confirmation Modal */}
@@ -425,11 +417,8 @@ export default function ProfilePage() {
         okText="Logout"
         cancelText="Cancel"
         okButtonProps={{ danger: true }}
-        centered
-        width={
-          window.innerWidth < 640 ? "90%" : window.innerWidth < 768 ? 400 : 480
-        }>
-        <p className="text-sm sm:text-base">Are you sure you want to logout?</p>
+        centered>
+        <p>Are you sure you want to logout?</p>
       </Modal>
 
       {/* Help Center Modal */}

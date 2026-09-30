@@ -9,6 +9,7 @@
 
 import { authAPI } from "@/lib/api";
 import { useCartStore } from "@/store/cartStore";
+import { useDeliveryStore } from "@/store/deliveryStore";
 import { useRouter } from "next/navigation";
 import {
   createContext,
@@ -105,6 +106,10 @@ export function AuthProvider({ children }) {
           localStorage.setItem("token", response.data.token);
         }
         localStorage.setItem("user", JSON.stringify(response.data.user));
+
+        // Force the mandatory delivery-date modal to show again this login
+        useDeliveryStore.getState().reset();
+
         return response.data;
       }
     } catch (err) {
@@ -126,6 +131,7 @@ export function AuthProvider({ children }) {
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
         }
+        useDeliveryStore.getState().reset();
         router.push("/");
         return response.data;
       }

@@ -8,9 +8,11 @@ import { useCartStore } from "@/store/cartStore";
 import { GoogleOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const { message } = App.useApp();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
   const { addPendingProduct, pendingProduct } = useCartStore();
@@ -187,7 +189,7 @@ export default function LoginPage() {
             </Button>
 
             <p className="mt-8 text-center text-gray-600">
-              Don't have an account?
+              Don&apos;t have an account?
               <Link
                 href="/register"
                 className="ml-2 font-semibold text-green-600 hover:text-green-700">

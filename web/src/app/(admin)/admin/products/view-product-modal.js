@@ -7,6 +7,7 @@ import {
   Descriptions,
   Divider,
   Image,
+  message,
   Modal,
   Row,
   Space,
@@ -20,6 +21,7 @@ export default function ViewProductModal({
   setViewModalVisible,
   viewingProduct,
   setViewingProduct,
+  handleEdit,
 }) {
   return (
     <Modal

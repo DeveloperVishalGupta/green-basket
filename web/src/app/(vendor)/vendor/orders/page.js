@@ -8,14 +8,11 @@ import {
   Input,
   Select,
   Tag,
-  Space,
-  Modal,
   Descriptions,
   Steps,
   Row,
   Col,
   Statistic,
-  Badge,
   Drawer,
   App,
 } from 'antd';
@@ -28,7 +25,6 @@ import {
   FilterOutlined,
   ShoppingCartOutlined,
 } from '@ant-design/icons';
-import { apiClient } from '@/lib/api';
 
 /**
  * Vendor Orders Page
@@ -57,6 +53,7 @@ export default function VendorOrders() {
 
   useEffect(() => {
     fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchOrders = async () => {

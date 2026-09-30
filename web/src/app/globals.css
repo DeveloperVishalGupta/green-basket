@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode: toggled via ThemeProvider adding .dark to <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f8fafc;
   --foreground: #1f2937;
@@ -12,6 +15,22 @@
   --warning: #facc15;
   --danger: #ef4444;
   --info: #16a34a;
+
+  /* Semantic surface/text/border tokens used across the app */
+  --surface: #ffffff;
+  --surface-muted: #f9fafb;
+  --surface-hover: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --border-default: #e5e7eb;
+  --border-muted: #f3f4f6;
+
+  /* Shared chrome heights so every shop page can size itself to exactly
+     fill the viewport below the sticky headers instead of overflowing it
+     (min-h-screen/dvh + sticky header height was causing extra scroll). */
+  --app-header-h: 4.5rem; /* global site Header (components/layout/Header.js) */
+  --page-header-h: 3.75rem; /* per-page PageHeader (components/layout/PageHeader.js) */
 }
 
 @theme inline {
@@ -20,21 +39,51 @@
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-hover: var(--surface-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border-default: var(--border-default);
+  --color-border-muted: var(--border-muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-  }
+.dark {
+  --background: #0b1220;
+  --foreground: #e5e7eb;
+
+  --surface: #111827;
+  --surface-muted: #0f172a;
+  --surface-hover: #1f2937;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --border-default: #1f2937;
+  --border-muted: #1e293b;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Fixed heights for the sticky headers (see --app-header-h/--page-header-h
+   above) so page wrappers can calc() their min-height against them. */
+.h-app-header {
+  height: var(--app-header-h);
+}
+
+.h-page-header {
+  height: var(--page-header-h);
+}
+
+/* Full-height area below the global Header */
+.min-h-below-header {
+  min-height: calc(100dvh - var(--app-header-h));
 }
 
 /* Green Basket Custom Utilities */
@@ -192,17 +241,41 @@ body {
   padding: 0.5rem !important;
 }
 
-/* globals.css */
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+/* Remove focus outline/ring from all buttons and inputs across the app */
+button,
+input,
+textarea,
+select,
+a,
+[tabindex]:not([tabindex="-1"]),
+.ant-btn,
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-input-number,
+.ant-picker {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-::-webkit-scrollbar {
-  display: none;
+button:focus,
+button:focus-visible,
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+.ant-btn:focus,
+.ant-btn:focus-visible,
+.ant-input:focus,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector,
+.ant-input-number:focus,
+.ant-input-number-focused,
+.ant-picker:focus,
+.ant-picker-focused {
+  outline: none !important;
+  box-shadow: none !important;
 }

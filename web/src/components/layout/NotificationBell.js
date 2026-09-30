@@ -10,7 +10,7 @@ import { useMarkAllAsRead, useMarkAsRead, useNotifications, useUnreadCount } fro
 import {
   BellOutlined
 } from '@ant-design/icons';
-import { App, Badge, Dropdown, Empty, Spin } from 'antd';
+import { App, Badge, Empty, Modal, Spin } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -65,9 +65,10 @@ export default function NotificationBell() {
       markAsRead(notification._id);
     }
     
-    // Navigate to related page
-    if (notification.order) {
-      router.push(`/orders/${notification.order}`);
+    // Navigate to related order's detail page
+    const orderId = notification.order?._id || notification.order;
+    if (orderId) {
+      router.push(`/orders/${orderId}`);
     }
     
     setOpen(false);
@@ -108,8 +109,8 @@ export default function NotificationBell() {
     return null;
   }
 
-  const dropdownContent = (
-    <div className="bg-white rounded-lg shadow-lg w-96 max-h-[500px] overflow-hidden">
+  const modalContent = (
+    <div className="bg-white overflow-hidden rounded-lg">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <h3 className="font-semibold text-gray-900">Notifications</h3>
@@ -194,18 +195,40 @@ export default function NotificationBell() {
   );
 
   return (
-    <Dropdown
-      open={open}
-      onOpenChange={setOpen}
-      popupRender={() => dropdownContent}
-      trigger={['click']}
-      placement="bottomRight"
-    >
-      <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
-        <Badge count={unreadCount} size="small" offset={[-2, 2]}>
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
+      >
+        <Badge
+          count={unreadCount}
+          overflowCount={9}
+          size="small"
+          offset={[-2, 2]}
+          styles={{
+            indicator: {
+              width: 18,
+              height: 18,
+              lineHeight: '18px',
+              borderRadius: '50%',
+              fontSize: 10,
+              padding: 0,
+            },
+          }}>
           <BellOutlined className={`text-xl ${unreadCount > 0 ? 'animate-pulse' : ''}`} />
         </Badge>
       </button>
-    </Dropdown>
+
+      <Modal
+        open={open}
+        onCancel={() => setOpen(false)}
+        footer={null}
+        top={80}
+        width={420}
+        styles={{ body: { padding: 0 } }}
+      >
+        {modalContent}
+      </Modal>
+    </>
   );
 }

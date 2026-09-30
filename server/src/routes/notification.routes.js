@@ -43,26 +43,4 @@ router.post(
   notificationController.createNotification,
 );
 
-router.get("/test-email", async (req, res) => {
-  try {
-    await sendEmail({
-      email: "yourpersonalemail@gmail.com",
-      subject: "Testing Email",
-      html: "<h2>Email sent successfully 🎉</h2>",
-    });
-
-    res.json({
-      success: true,
-      message: "Email sent",
-    });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      success: false,
-      error: err.message,
-    });
-  }
-});
-
 export default router;

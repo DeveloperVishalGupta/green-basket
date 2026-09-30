@@ -2,6 +2,7 @@
 
 import ProductCard from "@/components/home/ProductCard";
 import BottomNav from "@/components/layout/BottomNav";
+import PageHeader from "@/components/layout/PageHeader";
 import { useAuth } from "@/hooks/useAuth";
 import {
   useProduct,
@@ -11,7 +12,6 @@ import {
 import { useCheckWishlist, useToggleWishlist } from "@/hooks/useWishlist";
 import { useCartStore } from "@/store/cartStore";
 import {
-  ArrowLeftOutlined,
   CheckCircleOutlined,
   FacebookOutlined,
   HeartFilled,
@@ -39,7 +39,14 @@ export default function ProductDetailPage({ params }) {
   const { message } = App.useApp();
   const router = useRouter();
   const { user } = useAuth();
-  const { addItem, items, updateQuantity, setPendingProduct } = useCartStore();
+  const {
+    addItem,
+    items,
+    incrementItem,
+    decrementItem,
+    removeItem,
+    setPendingProduct,
+  } = useCartStore();
   const { slug } = use(params);
 
   // ── UI state ──
@@ -208,14 +215,6 @@ export default function ProductDetailPage({ params }) {
     };
   }, [cancelAnim]);
 
-  const handleMouseEnter = () => {
-    setIsImageZoomed(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsImageZoomed(false);
-  };
-
   const handleShare = () => {
     setShareModalVisible(true);
   };
@@ -250,7 +249,7 @@ export default function ProductDetailPage({ params }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-below-header items-center justify-center bg-gray-50">
         <div className="text-center">
           <Spin size="large" />
           <p className="mt-4 text-gray-500 font-medium">Loading product…</p>
@@ -261,7 +260,7 @@ export default function ProductDetailPage({ params }) {
 
   if (error || !product) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-below-header items-center justify-center bg-gray-50">
         <div className="text-center max-w-sm px-6">
           <div className="text-7xl mb-6">😞</div>
           <h1 className="text-2xl font-bold mb-2 text-gray-900">
@@ -289,46 +288,36 @@ export default function ProductDetailPage({ params }) {
       setCartLoginModal(true);
       return;
     }
-    if (inCart) {
-      updateQuantity(cartItemKey, (cartItem?.quantity || 0) + quantity);
-      message.success("Cart updated!");
-    } else {
-      addItem(
-        { ...product, id: cartItemKey, price: currentPrice, selectedVariant },
-        quantity,
-      );
-      message.success("Added to cart!");
-    }
+    // addItem already merges into an existing entry (incrementing its
+    // quantity atomically) or creates a new one — no need to branch here.
+    addItem(
+      { ...product, id: cartItemKey, price: currentPrice, selectedVariant },
+      quantity,
+    );
+    message.success(inCart ? "Cart updated!" : "Added to cart!");
   };
 
   const handleIncrementCart = () => {
-    updateQuantity(cartItemKey, (cartItem?.quantity || 0) + 1);
+    incrementItem(cartItemKey);
   };
 
   const handleDecrementCart = () => {
     if (cartItem && cartItem.quantity > 1) {
-      updateQuantity(cartItemKey, cartItem.quantity - 1);
+      decrementItem(cartItemKey);
     } else {
-      updateQuantity(cartItemKey, 0);
+      removeItem(cartItemKey);
       message.info("Item removed from cart");
     }
   };
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 pb-28 lg:pb-8">
-        {/* ── Sticky header ── */}
-        <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-          <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-            <button
-              onClick={() => router.back()}
-              className="shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-all">
-              <ArrowLeftOutlined className="text-base text-gray-700" />
-            </button>
-            <span className="flex-1 font-semibold text-gray-800 text-sm truncate capitalize">
-              {product.name}
-            </span>
-            <div className="shrink-0 flex items-center gap-2">
+      <div className="min-h-below-header bg-gray-50 pb-28 lg:pb-8">
+        <PageHeader
+          title={product.name}
+          maxWidth="max-w-6xl"
+          rightContent={
+            <>
               <button
                 onClick={handleShare}
                 className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 hover:bg-blue-100 transition-all">
@@ -346,9 +335,9 @@ export default function ProductDetailPage({ params }) {
                   <HeartOutlined className="text-gray-500 text-base" />
                 )}
               </button>
-            </div>
-          </div>
-        </header>
+            </>
+          }
+        />
 
         {/* ── Main content ── */}
         <div className="max-w-6xl mx-auto px-4 py-6">
@@ -836,48 +825,50 @@ export default function ProductDetailPage({ params }) {
           )}
         </div>
 
-        {/* ── Mobile fixed bottom bar ── */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-2xl">
-          <div className="px-4 py-3">
-            {inCart ? (
-              <div className="flex gap-2">
-                <div className="flex flex-1 items-center justify-between bg-emerald-50 border-2 border-emerald-500 rounded-xl px-3 py-2">
-                  <span className="font-semibold text-emerald-700 text-sm">
-                    In Cart:
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleDecrementCart}
-                      className="h-7 w-7 flex items-center justify-center rounded-lg border border-emerald-600 bg-white text-emerald-600">
-                      <MinusOutlined className="text-xs" />
-                    </button>
-                    <span className="font-bold text-emerald-600 w-6 text-center">
-                      {cartItem?.quantity || 0}
+        {/* ── Mobile fixed bottom bar (logged-in users only) ── */}
+        {user && (
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-2xl">
+            <div className="px-4 py-3">
+              {inCart ? (
+                <div className="flex gap-2">
+                  <div className="flex flex-1 items-center justify-between bg-emerald-50 border-2 border-emerald-500 rounded-xl px-3">
+                    <span className="font-semibold text-emerald-700 text-sm">
+                      In Cart:
                     </span>
-                    <button
-                      onClick={handleIncrementCart}
-                      className="h-7 w-7 flex items-center justify-center rounded-lg border border-emerald-600 bg-white text-emerald-600">
-                      <PlusOutlined className="text-xs" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleDecrementCart}
+                        className="h-7 w-7 flex items-center justify-center rounded-lg border border-emerald-600 bg-white text-emerald-600">
+                        <MinusOutlined className="text-xs" />
+                      </button>
+                      <span className="font-bold text-emerald-600 w-6 text-center">
+                        {cartItem?.quantity || 0}
+                      </span>
+                      <button
+                        onClick={handleIncrementCart}
+                        className="h-7 w-7 flex items-center justify-center rounded-lg border border-emerald-600 bg-white text-emerald-600">
+                        <PlusOutlined className="text-xs" />
+                      </button>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => router.push("/cart")}
+                    className="h-12 px-5 rounded-xl border-2 border-emerald-600 text-emerald-600 font-semibold text-sm hover:bg-emerald-50 transition-all flex items-center gap-1">
+                    <ShoppingCartOutlined /> View
+                  </button>
                 </div>
+              ) : (
                 <button
-                  onClick={() => router.push("/cart")}
-                  className="h-12 px-5 rounded-xl border-2 border-emerald-600 text-emerald-600 font-semibold text-sm hover:bg-emerald-50 transition-all flex items-center gap-1">
-                  <ShoppingCartOutlined /> View
+                  onClick={handleAddToCart}
+                  disabled={!inStock}
+                  className="w-full h-12 rounded-xl bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+                  <ShoppingCartOutlined />
+                  {inStock ? "+ Add to Cart" : "Out of Stock"}
                 </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleAddToCart}
-                disabled={!inStock}
-                className="w-full h-12 rounded-xl bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
-                <ShoppingCartOutlined />
-                {inStock ? "+ Add to Cart" : "Out of Stock"}
-              </button>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <BottomNav />
       </div>

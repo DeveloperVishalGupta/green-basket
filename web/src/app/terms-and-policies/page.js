@@ -5,19 +5,17 @@
 
 "use client";
 
+import Header from "@/components/layout/Header";
+import PageHeader from "@/components/layout/PageHeader";
 import {
-  ArrowLeftOutlined,
   FileTextOutlined,
   MailOutlined,
   SafetyOutlined,
   SwapOutlined,
 } from "@ant-design/icons";
 import { Tabs } from "antd";
-import { useRouter } from "next/navigation";
 
 export default function TermsAndPoliciesPage() {
-  const router = useRouter();
-
   const tabItems = [
     {
       key: "terms",
@@ -545,7 +543,7 @@ export default function TermsAndPoliciesPage() {
 
           <section className="mb-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              8. Children's Privacy
+              8. Children&apos;s Privacy
             </h3>
 
             <p className="text-gray-700">
@@ -834,25 +832,13 @@ export default function TermsAndPoliciesPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white/95">
-      {/* Gradient Header */}
-      <div className="bg-linear-to-br from-emerald-600 via-emerald-700 to-teal-600 px-4 sm:px-6 py-6 sm:py-8 shadow-lg">
-        <div className="max-w-5xl mx-auto">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-white/80 hover:text-white mb-4 transition-colors">
-            <ArrowLeftOutlined className="text-lg" />
-            <span className="text-sm">Back</span>
-          </button>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
-            Terms & Policies
-          </h1>
-          <p className="text-white/90 text-sm sm:text-base">
-            Everything you need to know about shopping with Green Basket—from
-            your privacy to returns and our terms of service.
-          </p>
-        </div>
-      </div>
+    <div className="min-h-below-header bg-white/95">
+      <Header />
+      <PageHeader
+        title="Terms & Policies"
+        subtitle="Privacy, returns, and terms of service"
+        maxWidth="max-w-5xl"
+      />
 
       {/* Content Container */}
       <div className="max-w-5xl mx-auto px-4 py-6 sm:py-8">
@@ -877,7 +863,7 @@ export default function TermsAndPoliciesPage() {
                 Have Questions?
               </h3>
               <p className="text-sm sm:text-base text-gray-700 mb-4">
-                If you have any questions about our policies, please don't
+                If you have any questions about our policies, please don&apos;t
                 hesitate to contact us.
               </p>
             </div>

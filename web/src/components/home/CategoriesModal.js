@@ -9,7 +9,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { Alert, Modal } from "antd";
 
 export default function CategoriesModal({ modalOpen, setOpen }) {
-  const { data, isLoading, error } = useCategories();
+  const { data, error } = useCategories();
 
   const categories = data?.data || [];
 

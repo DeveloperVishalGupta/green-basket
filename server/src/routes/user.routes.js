@@ -71,6 +71,8 @@ router.post(
     body('zipCode').notEmpty().withMessage('Zip code is required'),
     body('country').optional(),
     body('isDefault').optional().isBoolean(),
+    body('lat').optional().isFloat({ min: -90, max: 90 }),
+    body('lng').optional().isFloat({ min: -180, max: 180 }),
     validate,
   ],
   userController.addAddress
@@ -89,6 +91,8 @@ router.put(
       .optional()
       .isLength({ max: 185 })
       .withMessage('Address cannot exceed 185 characters'),
+    body('lat').optional().isFloat({ min: -90, max: 90 }),
+    body('lng').optional().isFloat({ min: -180, max: 180 }),
     validate,
   ],
   userController.updateAddress
@@ -110,6 +114,32 @@ router.put(
   '/addresses/:id/default',
   authenticate,
   userController.setDefaultAddress
+);
+
+/**
+ * @route   GET /api/users/delivery-availability
+ * @desc    Get delivery date availability (defaults to today + tomorrow)
+ * @access  Private
+ */
+router.get(
+  '/delivery-availability',
+  authenticate,
+  userController.getDeliveryAvailability
+);
+
+/**
+ * @route   PUT /api/users/delivery-preference
+ * @desc    Set the user's delivery date preference
+ * @access  Private
+ */
+router.put(
+  '/delivery-preference',
+  authenticate,
+  [
+    body('date').notEmpty().withMessage('Delivery date is required'),
+    validate,
+  ],
+  userController.setDeliveryPreference
 );
 
 export default router;

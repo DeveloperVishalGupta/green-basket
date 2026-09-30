@@ -32,7 +32,6 @@ import { useState } from "react";
  * @param {boolean} props.product.inStock - Stock availability
  */
 export default function ProductCard({ product }) {
-  const [isHovered, setIsHovered] = useState(false);
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [showCartNotification, setShowCartNotification] = useState(false);
   const [addedProduct, setAddedProduct] = useState(null);
@@ -145,9 +144,7 @@ export default function ProductCard({ product }) {
 
       <Link
         href={`/products/${product.slug}`}
-        className="group block"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}>
+        className="group block">
         <div className="relative overflow-hidden rounded-lg border border-gray-200 bg-white transition-all hover:border-gray-300 hover:shadow-lg">
           {/* Product Image */}
           <div className="relative aspect-square overflow-hidden bg-gray-100">

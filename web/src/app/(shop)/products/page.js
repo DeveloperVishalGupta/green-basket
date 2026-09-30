@@ -2,11 +2,15 @@
 
 import ProductCard from "@/components/home/ProductCard";
 import BottomNav from "@/components/layout/BottomNav";
-import Header from "@/components/layout/Header";
+import PageHeader from "@/components/layout/PageHeader";
 import FilterSidebar from "@/components/products/FilterSidebar";
 import { useProducts } from "@/hooks/useProducts";
 import { useCategories } from "@/services/categories";
-import { CloseOutlined, InboxOutlined } from "@ant-design/icons";
+import {
+  CloseOutlined,
+  FilterOutlined,
+  InboxOutlined,
+} from "@ant-design/icons";
 import { Button, Drawer, Spin } from "antd";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -141,16 +145,22 @@ function ProductsContent() {
   }, [searchParam]);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 lg:pb-0">
-      {/* Header - Consistent with Home Page */}
-      <Header />
+    <div className="min-h-below-header bg-gray-50 pb-20 lg:pb-0 lg:min-h-0 lg:h-[calc(100vh-4.5rem)] lg:overflow-hidden dark:bg-background lg:flex lg:flex-col">
+      <div className="lg:shrink-0">
+        <PageHeader
+          title="Products"
+          subtitle={`${sortedProducts.length} products available`}
+        />
+      </div>
 
       {/* Main Content with Sidebar */}
-      <div className="mx-auto max-w-7xl">
-        <div className="flex gap-6 py-6">
-          {/* Desktop Left Sidebar - Always Open */}
-          <aside className="hidden lg:block w-80 shrink-0">
-            <div className="sticky top-24 bg-white rounded-2xl shadow-md p-6 border border-gray-200">
+      <div className="mx-auto max-w-7xl lg:min-h-0 lg:flex-1 lg:w-full">
+        {/* On lg+ the row is viewport-height so the filter and product
+            columns each scroll independently; on mobile the page scrolls normally. */}
+        <div className="flex gap-6 py-6 lg:py-0 lg:h-full">
+          {/* Desktop Left Sidebar - Always Open, scrolls on its own */}
+          <aside className="hidden lg:block w-80 shrink-0 lg:h-full lg:overflow-y-auto lg:py-6 lg:pr-1">
+            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-900">Filters</h2>
                 <span className="text-sm text-emerald-600 font-semibold">
@@ -172,8 +182,21 @@ function ProductsContent() {
             </div>
           </aside>
 
-          {/* Products Grid */}
-          <main className="flex-1 px-3 md:px-0 ">
+          {/* Products Grid - scrolls on its own on lg+ */}
+          <main className="flex-1 px-3 md:px-0 lg:h-full lg:overflow-y-auto lg:py-6">
+            {/* Mobile filter trigger */}
+            <div className="flex items-center justify-between mb-4 lg:hidden">
+              <Button
+                icon={<FilterOutlined />}
+                size="large"
+                className="rounded-xl border-gray-300"
+                onClick={() => setFilterDrawerOpen(true)}>
+                Filters & Search
+              </Button>
+              <span className="text-sm font-semibold text-emerald-600">
+                {sortedProducts.length} Results
+              </span>
+            </div>
             {sortedProducts.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-2xl shadow-md">
                 <div className="bg-linear-to-br from-gray-100 to-gray-200 rounded-3xl p-12 inline-block mb-6">
@@ -259,7 +282,7 @@ export default function ProductsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-below-header flex items-center justify-center">
           <Spin size="large" />
         </div>
       }>

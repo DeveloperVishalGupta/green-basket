@@ -1,15 +1,20 @@
 "use client";
 
+import PartialStockConfirmModal from "@/components/checkout/PartialStockConfirmModal";
+import DeliveryScheduleNotice from "@/components/cart/DeliveryScheduleNotice";
+import PageHeader from "@/components/layout/PageHeader";
 import { useSetDefaultAddress } from "@/hooks/useAddresses";
 import { useAuth } from "@/hooks/useAuth";
-import { ordersAPI, paymentAPI } from "@/lib/api";
-import { DELIVERY_SLOTS } from "@/lib/constants";
-import { useCartStore } from "@/store/cartStore";
 import {
-  ArrowLeftOutlined,
-  LockOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+  usePincodeServiceability,
+  useSetDeliveryPreference,
+} from "@/hooks/useDelivery";
+import { deliveryAPI, ordersAPI, paymentAPI } from "@/lib/api";
+import { DELIVERY_SLOTS } from "@/lib/constants";
+import { getTodayId } from "@/lib/delivery";
+import { useCartStore } from "@/store/cartStore";
+import { useDeliveryStore } from "@/store/deliveryStore";
+import { DeleteOutlined, LockOutlined, PlusOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { App, Button, Divider, Input, Tag } from "antd";
 import Image from "next/image";
@@ -26,9 +31,11 @@ export default function CheckoutPage() {
   const { message } = App.useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { items, getTotalPrice, clearCart } = useCartStore();
+  const { items, getTotalPrice, clearCart, updateQuantity, removeItem } =
+    useCartStore();
   const { user } = useAuth();
   const setDefaultAddress = useSetDefaultAddress();
+  const { mutate: savePreference } = useSetDeliveryPreference();
   const queryClient = useQueryClient();
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
 
@@ -43,8 +50,12 @@ export default function CheckoutPage() {
   const [selectedAddress, setSelectedAddress] = useState(defaultAddressId);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedDeliverySlot, setSelectedDeliverySlot] = useState(null);
-  const [selectedDeliveryDate, setSelectedDeliveryDate] = useState(null);
+  const [selectedDeliveryDate, setSelectedDeliveryDate] = useState(
+    () => useDeliveryStore.getState().date,
+  );
   const [orderNotes, setOrderNotes] = useState("");
+  const [stockCheckItems, setStockCheckItems] = useState([]);
+  const [partialStockModalOpen, setPartialStockModalOpen] = useState(false);
 
   // Address currently shown/used at checkout: user's selection, else default, else first
   const currentAddress =
@@ -53,20 +64,23 @@ export default function CheckoutPage() {
     firstAddress ||
     null;
 
-  // Generate next 5 delivery date options
+  // Delivery is only available in select pincodes (configured server-side —
+  // see server/src/config/serviceableAreas.js). Re-checked here whenever
+  // the address changes, and again server-side at order creation.
+  const { data: pincodeCheck, isFetching: isCheckingPincode } =
+    usePincodeServiceability(currentAddress?.zipCode);
+  const isPincodeServiceable = pincodeCheck ? pincodeCheck.serviceable : true;
+
+  // Delivery is only offered for Today/Tomorrow, matching the mandatory
+  // delivery-date preference collected app-wide (see DeliveryPreferenceModal).
   const dateOptions = (() => {
     const opts = [];
     const now = new Date();
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 2; i++) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
       opts.push({
         id: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
-        label:
-          i === 0
-            ? "Today"
-            : i === 1
-              ? "Tomorrow"
-              : d.toLocaleDateString("en-IN", { weekday: "short" }),
+        label: i === 0 ? "Today" : "Tomorrow",
         sub: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
         fullDate: d,
       });
@@ -151,19 +165,19 @@ export default function CheckoutPage() {
   // Check if user has already used this coupon
   useEffect(() => {
     const checkCouponUsage = async () => {
-      if (appliedCoupon && appliedCoupon.name && user) {
+      if (appliedCoupon && appliedCoupon.code && user) {
         try {
           // Fetch user's orders to check if coupon was already used
           const response = await ordersAPI.getAll();
           const userOrders = response?.data?.data || [];
 
           const couponUsed = userOrders.some(
-            (order) => order.coupon?.code === appliedCoupon.name,
+            (order) => order.coupon?.code === appliedCoupon.code,
           );
 
           if (couponUsed) {
             message.warning({
-              content: `You have already used the coupon "${appliedCoupon.name}". Each coupon can only be used once per user.`,
+              content: `You have already used the coupon "${appliedCoupon.code}". Each coupon can only be used once per user.`,
               duration: 5,
             });
             // Remove coupon from URL by navigating to checkout without coupon param
@@ -185,50 +199,57 @@ export default function CheckoutPage() {
 
   // Calculate pricing for display
   const subtotal = getTotalPrice();
-  let discount = 0;
-  let deliveryFee = subtotal > 199 ? 0 : 25;
+  const discount = appliedCoupon?.discount ?? 0;
+  const deliveryFee = appliedCoupon?.freeDelivery
+    ? 0
+    : subtotal > 199
+      ? 0
+      : 25;
   const total = Math.max(0, subtotal - discount + deliveryFee);
 
-  const handlePlaceOrder = async () => {
-    if (!selectedAddress) {
-      message.error("Please select a delivery address");
-      return;
-    }
-
-    if (!selectedDeliveryDate) {
-      message.error("Please select a delivery date");
-      return;
-    }
-
-    if (!selectedDeliverySlot) {
-      message.error("Please select a delivery time slot");
-      return;
-    }
-
-    if (!razorpayLoaded && paymentMethod !== "COD") {
-      message.error("Payment gateway is loading. Please wait...");
-      return;
-    }
-
+  /**
+   * Places the order for exactly `orderItems` (which may be a reduced
+   * subset/quantity of the full cart, after a partial-stock confirmation).
+   * Pricing is recomputed from `orderItems` so a partial order is only
+   * charged for what's actually being shipped.
+   */
+  const submitOrder = async (orderItems) => {
     setIsProcessing(true);
 
     try {
-      const addressObj = user?.addresses.find((a) => a._id === selectedAddress);
+      const shippingAddress = user?.addresses.find(
+        (a) => a._id === selectedAddress,
+      );
+
+      const orderSubtotal = orderItems.reduce(
+        (sum, i) => sum + i.price * i.quantity,
+        0,
+      );
+      const orderDeliveryFee = appliedCoupon?.freeDelivery
+        ? 0
+        : orderSubtotal > 199
+          ? 0
+          : 25;
+      const orderTotal = Math.max(
+        0,
+        orderSubtotal - discount + orderDeliveryFee,
+      );
 
       const payload = {
-        items: items.map((i) => ({
+        items: orderItems.map((i) => ({
           product: i._id || i.id,
           quantity: i.quantity,
           variant: i.selectedVariant?.label,
           name: i.name,
         })),
-        shippingAddress: addressObj,
+        shippingAddress,
         pricing: {
-          subtotal,
+          subtotal: orderSubtotal,
           discount,
-          shippingFee: deliveryFee,
-          total,
+          shippingFee: orderDeliveryFee,
+          total: orderTotal,
         },
+        coupon: appliedCoupon ? { code: appliedCoupon.code } : undefined,
         deliveryDate: selectedDeliveryDate,
         deliveryTimeSlot:
           DELIVERY_SLOTS.find((s) => s.id === selectedDeliverySlot)?.label ||
@@ -248,28 +269,163 @@ export default function CheckoutPage() {
       console.log("✅ Order created:", createdOrder);
 
       if (paymentMethod === "COD") {
-        // COD: server already cleared cart and sent email; just update local state and redirect
-        clearCart();
+        // COD: server already sent the confirmation email. Navigate away
+        // first, then reconcile the cart (remove what was ordered, keep any
+        // leftover that couldn't be fulfilled today) — emptying the cart
+        // before the redirect kicks off can flash the checkout page's own
+        // empty-cart screen for a frame while the route transition catches up.
         message.success("Order placed successfully! Pay on delivery.");
         queryClient.invalidateQueries({ queryKey: ["orders"] });
+        // Replace the checkout entry with home before pushing the order
+        // details page, so pressing back from there lands on home instead
+        // of back into checkout (which would otherwise show an empty cart).
+        router.replace("/");
         router.push(`/orders/${createdOrder._id}`);
+
+        const orderedQtyById = new Map(
+          orderItems.map((i) => [i.id, i.quantity]),
+        );
+        items.forEach((cartItem) => {
+          const orderedQty = orderedQtyById.get(cartItem.id) || 0;
+          if (orderedQty > 0) {
+            updateQuantity(cartItem.id, cartItem.quantity - orderedQty);
+          }
+        });
         return;
       }
 
       await handleRazorpayPayment(createdOrder._id);
     } catch (err) {
       const errorMessage =
-        err?.message || err?.response?.data?.message || "Failed to place order";
+        err?.response?.data?.errors?.[0]?.message ||
+        err?.message ||
+        err?.response?.data?.message ||
+        "Failed to place order";
 
       if (err?.status === 401 || err?.response?.status === 401) {
         message.error("Please login to place an order");
         router.push("/login");
+      } else if (err?.response?.data?.code === "DELIVERY_DATE_UNAVAILABLE") {
+        setSelectedDeliveryDate(null);
+        setSelectedDeliverySlot(null);
+        useDeliveryStore.getState().setDate(null);
+        message.error(
+          "Your selected delivery date is no longer available. Please choose another date below.",
+        );
+      } else if (err?.response?.data?.code === "PINCODE_NOT_SERVICEABLE") {
+        message.error(errorMessage, 6);
       } else {
         message.error(errorMessage);
       }
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleRemoveItem = (itemId) => {
+    removeItem(itemId);
+    message.info("Item removed from your order");
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!selectedAddress) {
+      message.error("Please select a delivery address");
+      return;
+    }
+
+    // Final pincode re-check right before placing the order — the address
+    // may have changed since it was first selected/added, and this stays
+    // the last line of defense before the authoritative server-side check.
+    if (currentAddress?.zipCode) {
+      setIsProcessing(true);
+      try {
+        const pincodeRes = await deliveryAPI.checkPincode(
+          currentAddress.zipCode,
+        );
+        if (!pincodeRes?.data?.data?.serviceable) {
+          setIsProcessing(false);
+          message.error(
+            pincodeRes?.data?.data?.message ||
+              "Sorry, we don't deliver to this pincode yet.",
+          );
+          return;
+        }
+      } catch (err) {
+        setIsProcessing(false);
+        message.error(
+          err?.message || "Could not verify delivery availability. Please try again.",
+        );
+        return;
+      }
+      setIsProcessing(false);
+    }
+
+    if (!selectedDeliveryDate) {
+      message.error("Please select a delivery date");
+      return;
+    }
+
+    if (!selectedDeliverySlot) {
+      message.error("Please select a delivery time slot");
+      return;
+    }
+
+    if (!razorpayLoaded && paymentMethod !== "COD") {
+      message.error("Payment gateway is loading. Please wait...");
+      return;
+    }
+
+    // Stock is only checked for "Today" delivery — "Tomorrow" skips this
+    // entirely and orders the full requested quantity regardless of stock.
+    if (selectedDeliveryDate === getTodayId()) {
+      setIsProcessing(true);
+      try {
+        const res = await ordersAPI.checkStock(
+          items.map((i) => ({
+            product: i._id || i.id,
+            quantity: i.quantity,
+            name: i.name,
+          })),
+          selectedDeliveryDate,
+        );
+
+        const { items: checkedItems, hasPartial } = res.data.data;
+
+        if (hasPartial) {
+          setStockCheckItems(checkedItems);
+          setPartialStockModalOpen(true);
+          setIsProcessing(false);
+          return;
+        }
+      } catch (err) {
+        setIsProcessing(false);
+        message.error(
+          err?.response?.data?.message || "Failed to check stock availability",
+        );
+        return;
+      }
+    }
+
+    await submitOrder(items);
+  };
+
+  const handlePartialStockConfirm = async () => {
+    const availableQtyById = new Map(
+      stockCheckItems.map((i) => [i.product, i.availableQty]),
+    );
+
+    const adjustedItems = items
+      .map((item) => {
+        const productId = item._id || item.id;
+        const availableQty = availableQtyById.has(productId)
+          ? availableQtyById.get(productId)
+          : item.quantity;
+        return { ...item, quantity: availableQty };
+      })
+      .filter((item) => item.quantity > 0);
+
+    setPartialStockModalOpen(false);
+    await submitOrder(adjustedItems);
   };
 
   const handleRazorpayPayment = async (orderId) => {
@@ -351,6 +507,9 @@ export default function CheckoutPage() {
 
               queryClient.invalidateQueries({ queryKey: ["orders"] });
 
+              // See the COD path above — replace checkout with home first so
+              // back from the order details page lands on home.
+              router.replace("/");
               router.push(`/orders/${orderId}`);
             } else {
               const errMsg =
@@ -448,9 +607,13 @@ export default function CheckoutPage() {
     }
   };
 
-  if (items.length === 0) {
+  // Skip the empty-cart screen while an order is being placed/just placed —
+  // submitOrder empties the cart on success right before navigating away,
+  // and without this guard that briefly flashes this screen on top of the
+  // checkout page during the moment before the redirect completes.
+  if (items.length === 0 && !isProcessing) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-below-header items-center justify-center bg-gray-50">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Your cart is empty</h2>
           <Button
@@ -465,18 +628,8 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-4">
-        <div className="mx-auto flex max-w-7xl items-center gap-3">
-          <button
-            onClick={() => router.push("/cart")}
-            className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
-            <ArrowLeftOutlined className="text-xl" />
-          </button>
-          <h1 className="text-xl font-bold">Checkout</h1>
-        </div>
-      </header>
+    <div className="min-h-below-header bg-gray-50">
+      <PageHeader title="Checkout" onBack={() => router.push("/cart")} />
 
       {/* Coupon Applied Banner */}
       {appliedCoupon && (
@@ -487,7 +640,7 @@ export default function CheckoutPage() {
               <div>
                 <p className="font-semibold text-green-800">Coupon Applied!</p>
                 <p className="text-sm text-green-700">
-                  {appliedCoupon.name} - ₹{appliedCoupon.discount} off
+                  {appliedCoupon.code} - ₹{appliedCoupon.discount} off
                   {appliedCoupon.freeDelivery && " + Free Delivery"}
                 </p>
               </div>
@@ -505,39 +658,39 @@ export default function CheckoutPage() {
           {/* LEFT COLUMN (2/3 width) */}
           <div className="lg:col-span-2 space-y-6">
             {/* Delivery Address Section */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <span className="text-2xl">📍</span>
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <h2 className="text-base font-bold flex items-center gap-1.5">
+                  <span className="text-lg">📍</span>
                   Delivery Address
                 </h2>
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-1.5">
+                  {hasAddresses && (
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        const params = new URLSearchParams({
+                          from: "/checkout",
+                        });
+                        const couponParam = searchParams?.get("coupon");
+                        if (couponParam) params.set("coupon", couponParam);
+                        router.push(`/addresses?${params.toString()}`);
+                      }}>
+                      Manage
+                    </Button>
+                  )}
                   <Button
                     type="primary"
                     size="small"
                     icon={<PlusOutlined />}
                     onClick={() => {
+                      const params = new URLSearchParams({ from: "/checkout" });
                       const couponParam = searchParams?.get("coupon");
-                      const url = couponParam
-                        ? `/addresses/add?coupon=${encodeURIComponent(couponParam)}`
-                        : "/addresses/add";
-                      router.push(url);
+                      if (couponParam) params.set("coupon", couponParam);
+                      router.push(`/addresses/add?${params.toString()}`);
                     }}>
-                    Add Address
+                    Add
                   </Button>
-                  {hasAddresses && (
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        const couponParam = searchParams?.get("coupon");
-                        const url = couponParam
-                          ? `/addresses?coupon=${encodeURIComponent(couponParam)}`
-                          : "/addresses";
-                        router.push(url);
-                      }}>
-                      Manage
-                    </Button>
-                  )}
                 </div>
               </div>
 
@@ -551,7 +704,7 @@ export default function CheckoutPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid gap-3">
+                <div className="grid gap-2">
                   {[currentAddress].filter(Boolean).map((address) => {
                     const isSelected =
                       selectedAddress === (address.id || address._id);
@@ -664,6 +817,18 @@ export default function CheckoutPage() {
                   })}
                 </div>
               )}
+
+              {hasAddresses && !isCheckingPincode && !isPincodeServiceable && (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                  <p className="text-sm font-semibold text-red-700">
+                    😔 Delivery not available at this address
+                  </p>
+                  <p className="mt-1 text-xs text-red-600">
+                    {pincodeCheck?.message ||
+                      "We currently deliver only within select areas (Mumbai - 400089). Please choose or add an address in a serviceable area."}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Order Items Section */}
@@ -676,7 +841,16 @@ export default function CheckoutPage() {
                 {items?.map((item) => (
                   <div
                     key={item.id}
-                    className="border border-gray-200 flex gap-4 hover:border-gray-300 hover:shadow-sm px-4 py-2 rounded-xl shadow-sm transition-all">
+                    className="relative border border-gray-200 flex gap-4 hover:border-gray-300 hover:shadow-sm px-4 py-2 pr-10 rounded-xl shadow-sm transition-all">
+                    {/* Remove item */}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(item.id)}
+                      aria-label={`Remove ${item.name} from order`}
+                      className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-lg bg-red-50 text-red-500 transition-all hover:bg-red-100 hover:text-red-600">
+                      <DeleteOutlined className="text-sm" />
+                    </button>
+
                     {/* Product Image */}
                     <div className="h-20 w-20 border border-slate-300 rounded-xl shrink-0 relative  overflow-hidden bg-gray-100">
                       {item.images?.[0] ? (
@@ -731,34 +905,42 @@ export default function CheckoutPage() {
             </div>
 
             {/* Delivery Schedule Section */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl font-bold mb-5 flex items-center gap-2">
-                <span className="text-2xl">📅</span>
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200">
+              <h2 className="text-base font-bold mb-3 flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-emerald-500 to-teal-500 text-sm">
+                  📅
+                </span>
                 Delivery Schedule
               </h2>
 
               {/* Date Selection */}
-              <div className="mb-6">
-                <p className="text-sm font-semibold text-gray-700 mb-3">
+              <div className="mb-4">
+                <p className="text-sm font-semibold text-gray-700 mb-2">
                   Select Delivery Date
                 </p>
 
                 {/* Mobile: Horizontal Scroll | Desktop: Grid */}
-                <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-5 md:gap-2 md:overflow-visible">
+                <div className="flex gap-2 overflow-x-auto pt-2 pb-1 snap-x snap-mandatory md:grid md:grid-cols-5 md:overflow-visible">
                   {dateOptions.map((opt) => (
                     <button
                       key={opt.id}
                       onClick={() => {
                         setSelectedDeliveryDate(opt.id);
                         setSelectedDeliverySlot(null);
+                        useDeliveryStore.getState().setDate(opt.id);
+                        savePreference(opt.id);
                       }}
-                      className={`shrink-0 snap-start min-w-27.5 md:min-w-0 rounded-xl border-2 p-3 transition-all text-center font-medium ${
+                      className={`relative shrink-0 snap-start min-w-24 md:min-w-0 rounded-xl border-2 py-2 px-3 transition-all text-center font-medium ${
                         selectedDeliveryDate === opt.id
-                          ? "border-green-600 bg-green-50 text-green-700 shadow-md"
-                          : "border-gray-200 hover:border-green-300 text-gray-700"
+                          ? "border-emerald-600 bg-linear-to-br from-emerald-50 to-teal-50 text-emerald-700 shadow-sm"
+                          : "border-gray-200 hover:border-emerald-300 text-gray-700"
                       }`}>
+                      {selectedDeliveryDate === opt.id && (
+                        <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[9px] text-white">
+                          ✓
+                        </span>
+                      )}
                       <div className="text-sm font-bold">{opt.label}</div>
-
                       <div className="text-xs text-gray-500 mt-1">
                         {opt.sub}
                       </div>
@@ -770,25 +952,25 @@ export default function CheckoutPage() {
               {/* Time Slot Selection */}
               {selectedDeliveryDate && (
                 <div>
-                  <p className="text-sm font-semibold text-gray-700 mb-3">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">
                     Select Delivery Time
                   </p>
                   {availableSlots.length === 0 ? (
-                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
                       <p className="text-sm text-yellow-800">
                         All delivery slots for today have passed. Please select
                         another date.
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {/* Morning Slots */}
                       {availableSlots.some((s) => s.window === "morning") && (
                         <div>
-                          <p className="text-xs font-semibold text-gray-600 mb-2 flex items-center gap-2">
+                          <p className="text-xs font-semibold text-gray-600 mb-1.5 flex items-center gap-2">
                             <span>🌅</span> Morning (8:00 AM - 10:00 AM)
                           </p>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
                             {availableSlots
                               .filter((s) => s.window === "morning")
                               .map((slot) => (
@@ -797,10 +979,10 @@ export default function CheckoutPage() {
                                   onClick={() =>
                                     setSelectedDeliverySlot(slot.id)
                                   }
-                                  className={`rounded-lg border-2 p-3 transition-all font-medium ${
+                                  className={`rounded-lg border-2 py-2 px-2 transition-all font-medium ${
                                     selectedDeliverySlot === slot.id
-                                      ? "border-green-600 bg-green-50 text-green-700 shadow-sm"
-                                      : "border-gray-200 hover:border-green-300 hover:bg-gray-50"
+                                      ? "border-emerald-600 bg-emerald-50 text-emerald-700 shadow-sm"
+                                      : "border-gray-200 hover:border-emerald-300 hover:bg-gray-50"
                                   }`}>
                                   <p className="text-sm">{slot.label}</p>
                                 </button>
@@ -812,10 +994,10 @@ export default function CheckoutPage() {
                       {/* Evening Slots */}
                       {availableSlots.some((s) => s.window === "evening") && (
                         <div>
-                          <p className="text-xs font-semibold text-gray-600 mb-2 flex items-center gap-2">
+                          <p className="text-xs font-semibold text-gray-600 mb-1.5 flex items-center gap-2">
                             <span>🌙</span> Evening (7:00 PM - 10:00 PM)
                           </p>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
                             {availableSlots
                               .filter((s) => s.window === "evening")
                               .map((slot) => (
@@ -824,10 +1006,10 @@ export default function CheckoutPage() {
                                   onClick={() =>
                                     setSelectedDeliverySlot(slot.id)
                                   }
-                                  className={`rounded-lg p-3 border-2 transition-all text-center font-medium ${
+                                  className={`rounded-lg py-2 px-2 border-2 transition-all text-center font-medium ${
                                     selectedDeliverySlot === slot.id
-                                      ? "border-green-600 bg-green-50 text-green-700 shadow-md"
-                                      : "border-gray-200 hover:border-green-300 text-gray-700 hover:bg-gray-50"
+                                      ? "border-emerald-600 bg-emerald-50 text-emerald-700 shadow-sm"
+                                      : "border-gray-200 hover:border-emerald-300 text-gray-700 hover:bg-gray-50"
                                   }`}>
                                   <p className="text-sm font-semibold">
                                     {slot.label}
@@ -839,6 +1021,12 @@ export default function CheckoutPage() {
                       )}
                     </div>
                   )}
+                </div>
+              )}
+
+              {selectedDeliveryDate && selectedDeliverySlot && (
+                <div className="mt-3">
+                  <DeliveryScheduleNotice />
                 </div>
               )}
             </div>
@@ -865,7 +1053,7 @@ export default function CheckoutPage() {
 
           {/* RIGHT COLUMN (1/3 width) */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24 space-y-6">
+            <div className="sticky top-24 space-y-4">
               {/* Premium Payment Section */}
               {paymentMethod !== "COD" ? (
                 <div className="bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 shadow-lg border-2 border-indigo-200">
@@ -972,13 +1160,13 @@ export default function CheckoutPage() {
               )}
 
               {/* Order Summary Section */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200">
+                <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
                   <span>📊</span>
                   Order Summary
                 </h3>
 
-                <div className="space-y-3 mb-4">
+                <div className="space-y-2 mb-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>
                     <span className="font-semibold text-gray-900">
@@ -1009,20 +1197,20 @@ export default function CheckoutPage() {
                     )}
                   </div>
 
-                  <Divider className="my-2" />
+                  <Divider className="my-0" />
 
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="font-bold text-gray-900">
                       Total Amount
                     </span>
-                    <span className="text-2xl font-bold text-green-600">
+                    <span className="text-xl font-bold text-green-600">
                       ₹{total}
                     </span>
                   </div>
                 </div>
 
                 {deliveryFee === 0 && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center mb-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg py-1.5 text-center mb-3">
                     <p className="text-xs font-semibold text-green-800">
                       ✓ Free Delivery!
                     </p>
@@ -1038,11 +1226,12 @@ export default function CheckoutPage() {
                   disabled={
                     isProcessing ||
                     !selectedAddress ||
+                    !isPincodeServiceable ||
                     !selectedDeliveryDate ||
                     !selectedDeliverySlot ||
                     (paymentMethod !== "COD" && !razorpayLoaded)
                   }
-                  className="h-12 text-base font-semibold rounded-lg"
+                  className="h-11 text-base font-semibold rounded-lg"
                   style={{
                     background: isProcessing ? "#ccc" : "#0F8A5F",
                     borderColor: "#0F8A5F",
@@ -1059,17 +1248,25 @@ export default function CheckoutPage() {
                 </Button>
 
                 {!selectedAddress && (
-                  <p className="text-xs text-red-600 mt-2 text-center">
+                  <p className="text-xs text-red-600 mt-1.5 text-center">
                     Please select an address
                   </p>
                 )}
-                {selectedAddress && !selectedDeliveryDate && (
-                  <p className="text-xs text-red-600 mt-2 text-center">
-                    Please select a delivery date
+                {selectedAddress && !isPincodeServiceable && (
+                  <p className="text-xs text-red-600 mt-1.5 text-center">
+                    {pincodeCheck?.message ||
+                      "We don't deliver to this address yet."}
                   </p>
                 )}
+                {selectedAddress &&
+                  isPincodeServiceable &&
+                  !selectedDeliveryDate && (
+                    <p className="text-xs text-red-600 mt-1.5 text-center">
+                      Please select a delivery date
+                    </p>
+                  )}
                 {selectedDeliveryDate && !selectedDeliverySlot && (
-                  <p className="text-xs text-red-600 mt-2 text-center">
+                  <p className="text-xs text-red-600 mt-1.5 text-center">
                     Please select a time slot
                   </p>
                 )}
@@ -1077,8 +1274,8 @@ export default function CheckoutPage() {
 
               {/* Security Badge */}
               {paymentMethod !== "COD" && (
-                <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-200">
-                  <p className="text-xs text-gray-600 mb-2">
+                <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-200">
+                  <p className="text-xs text-gray-600 mb-1">
                     🔐 Your payment is protected by
                   </p>
                   <p className="text-sm font-bold text-gray-900">
@@ -1090,6 +1287,14 @@ export default function CheckoutPage() {
           </div>
         </div>
       </main>
+
+      <PartialStockConfirmModal
+        open={partialStockModalOpen}
+        items={stockCheckItems}
+        onConfirm={handlePartialStockConfirm}
+        onCancel={() => setPartialStockModalOpen(false)}
+        confirmLoading={isProcessing}
+      />
     </div>
   );
 }

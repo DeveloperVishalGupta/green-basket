@@ -1,4 +1,4 @@
-import { sendOrderConfirmationEmail } from '../config/email.js';
+import { sendAdminOrderNotificationEmail, sendOrderConfirmationEmail } from '../config/email.js';
 import { createOrder as createRazorpayOrder, fetchPayment, verifyPaymentSignature, verifyWebhookSignature } from '../config/razorpay.js';
 import Cart from '../models/Cart.js';
 import Notification from '../models/Notification.js';
@@ -278,12 +278,19 @@ class PaymentController {
           // Don't fail the request if cart clearing fails
         }
 
-        // Send order confirmation email
+        // Send order confirmation email to customer and admin
+        const userObj = order.user._id ? order.user : await User.findById(order.user);
         try {
-          const userObj = order.user._id ? order.user : await User.findById(order.user);
           await sendOrderConfirmationEmail(order, userObj);
         } catch (emailError) {
           console.error('❌ Error sending confirmation email:', emailError);
+          // Don't fail the request if email fails
+        }
+
+        try {
+          await sendAdminOrderNotificationEmail(order, userObj);
+        } catch (adminEmailError) {
+          console.error('❌ Error sending admin order notification email:', adminEmailError);
           // Don't fail the request if email fails
         }
 

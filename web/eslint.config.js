@@ -1,52 +1,31 @@
-import js from "@eslint/js";
-import nextPlugin from "@next/eslint-plugin-next";
+import nextPlugin from "eslint-config-next";
 
-export default [
-  js.configs.recommended,
-
+const config = [
+  ...nextPlugin,
   {
-    languageOptions: {
-      ecmaVersion: "latest",
-      sourceType: "module",
-      parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
-      },
-      globals: {
-        // Browser globals
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        localStorage: 'readonly',
-        sessionStorage: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        console: 'readonly',
-        FormData: 'readonly',
-        URLSearchParams: 'readonly',
-        fetch: 'readonly',
-        FileReader: 'readonly',
-        Blob: 'readonly',
-        // Node.js globals
-        process: 'readonly',
-        // React/Next.js
-        React: 'readonly',
-        JSX: 'readonly',
-      },
-    },
-    plugins: {
-      "@next/next": nextPlugin,
-    },
     rules: {
-      ...nextPlugin.configs.recommended.rules,
-      ...nextPlugin.configs["core-web-vitals"].rules,
-      'no-unused-vars': "off",
+      // React Compiler diagnostics — not applicable, this project doesn't use the compiler.
+      "react-hooks/static-components": "off",
+      "react-hooks/use-memo": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/incompatible-library": "off",
+      "react-hooks/immutability": "off",
+      "react-hooks/globals": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/error-boundaries": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/set-state-in-render": "off",
+      "react-hooks/unsupported-syntax": "off",
+      "react-hooks/config": "off",
+      "react-hooks/gating": "off",
+
+      "no-unused-vars": [
+        "warn",
+        { args: "none", ignoreRestSiblings: true, caughtErrors: "none" },
+      ],
     },
   },
-
   {
     ignores: [
       "node_modules/**",
@@ -56,3 +35,5 @@ export default [
     ],
   },
 ];
+
+export default config;

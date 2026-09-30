@@ -77,6 +77,17 @@ export const createOrderSchema = Joi.object({
     landmark: Joi.string().allow("").optional(),
 
     isDefault: Joi.boolean().optional(),
+
+    // Reverse-geocoded label for the confirmed map pin (see location
+    // below). Optional — reverse geocoding can fail even after the pin
+    // itself is confirmed — but persisted whenever available.
+    formattedAddress: Joi.string().trim().allow("").optional(),
+
+    // Optional: a precise lat/lng for the delivery pin, when available.
+    location: Joi.object({
+      lat: Joi.number().min(-90).max(90).required(),
+      lng: Joi.number().min(-180).max(180).required(),
+    }).optional(),
   })
     .required()
     .messages({

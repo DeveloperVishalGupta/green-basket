@@ -12,14 +12,14 @@ export default function CategoryCard({ category }) {
     <Link
       href={`/products?category=${category._id || category.id}`}
       className="group block text-center">
-      <div className="mb-3 mx-auto h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 overflow-hidden rounded-3xl bg-linear-to-br from-gray-100 to-gray-200 shadow-md transition-all duration-300 group-hover:shadow-lg group-hover:scale-105">
+      <div className="relative mb-3 mx-auto h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 overflow-hidden rounded-3xl bg-linear-to-br from-gray-100 to-gray-200 shadow-md transition-all duration-300 group-hover:shadow-lg group-hover:scale-105">
         {category.image?.url ? (
           <Image
             src={category.image?.url}
             alt={category.name}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover max-w-36 transition-transform relative! duration-1000 group-hover:scale-105"
+            className="object-cover max-w-36 transition-transform duration-1000 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-2xl sm:text-3xl text-gray-400">

@@ -25,11 +25,12 @@ import { useEffect, useState } from "react";
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const { getTotalItems } = useCartStore();
-  const cartCount = getTotalItems();
+  // Number of distinct products in the cart, not the summed quantity — see
+  // BottomNav for the same convention.
+  const { items } = useCartStore();
+  const cartCount = items.length;
 
   const [mounted, setMounted] = useState(false);
-  const [deliveryTime] = useState("7-10 days");
 
   const [categoryModalStatus, setCategoryModalStatus] = useState(false);
 
@@ -147,7 +148,7 @@ export default function Home() {
 
               {/* Stats */}
 
-              <div className="hidden md:block mt-12 md:grid grid-cols-3 gap-4 sm:gap-8">
+              <div className="hidden mt-12 md:grid grid-cols-3 gap-4 sm:gap-8">
                 <div>
                   <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
                     100+
@@ -181,9 +182,9 @@ export default function Home() {
             {/* RIGHT CONTENT */}
 
             <div className="relative order-1 lg:order-2">
-              <div className="absolute inset-0 rounded-[40px] bg-gradient-to-br from-green-300/20 to-emerald-400/20 blur-3xl" />
+              <div className="absolute inset-0 rounded-[40px] bg-linear-to-br from-green-300/20 to-emerald-400/20 blur-3xl" />
 
-              <div className="relative hidden md:block overflow-hidden rounded-[32px] border border-white bg-white/70 shadow-2xl backdrop-blur-xl">
+              <div className="relative hidden md:block overflow-hidden rounded-4xl border border-white bg-white/70 shadow-2xl backdrop-blur-xl">
                 <Image
                   src="/images/hero-vegetables.png"
                   alt="Fresh Vegetables"
@@ -203,7 +204,7 @@ export default function Home() {
                   className="w-full h-auto object-contain"
                 />
               </div> */}
-              <div className=" mt-6  md:hidden  border border-white   backdrop-blur-xl">
+              <div className=" mt-6 md:hidden backdrop-blur-xl">
                 <Image
                   src="/images/hero-transparent.png"
                   alt="Fresh Vegetables"
@@ -315,7 +316,7 @@ export default function Home() {
         {/* Mega Savings Banner */}
 
         <section className="px-3 py-6 md:px-6 md:py-8">
-          <button className="group relative w-full overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-50 via-white to-lime-50 px-6 py-6 md:px-8 md:py-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+          <button className="group relative w-full overflow-hidden rounded-3xl border border-emerald-100 bg-linear-to-r from-emerald-50 via-white to-lime-50 px-6 py-6 md:px-8 md:py-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
             {/* Decorative background */}
             <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-emerald-100/50 blur-2xl" />
             <div className="absolute -left-8 -bottom-8 h-24 w-24 rounded-full bg-lime-100/50 blur-2xl" />
@@ -378,7 +379,7 @@ export default function Home() {
         {/* Free Delivery Promotional Banner */}
 
         <section className="px-4 py-6 md:py-10">
-          <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-50 via-white to-lime-50 shadow-sm">
+          <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-linear-to-r from-emerald-50 via-white to-lime-50 shadow-sm">
             {/* Decorative Shapes */}
             <div className="absolute -top-16 -right-16 h-56 w-56 rounded-full bg-emerald-100/40 blur-3xl" />
             <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-lime-100/40 blur-3xl" />
@@ -450,11 +451,16 @@ export default function Home() {
         {/* New Arrivals - Using React Query */}
         {/* <NewArrivalsSection /> */}
       </main>
-      {/* Floating Cart Button */}
-      {mounted && cartCount > 0 && (
-        <Link href="/cart" className="fixed bottom-20 right-4 z-40">
+      {/* Floating Cart Button - only for logged-in users, desktop only
+          (mobile already has a Cart tab in the bottom nav) */}
+      {user && mounted && cartCount > 0 && (
+        <Link
+          href="/cart"
+          className="fixed bottom-6 right-4 z-40 hidden lg:block">
           <Badge count={cartCount} offset={[-5, 5]}>
-            <button className="flex h-14 w-14 items-center justify-center rounded-full bg-[#ED6C30] text-white shadow-lg transition-transform hover:scale-110 active:scale-95">
+            <button
+              aria-label="View cart"
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg transition-transform hover:scale-110 hover:bg-emerald-700 active:scale-95">
               <ShoppingCartOutlined className="text-2xl" />
             </button>
           </Badge>

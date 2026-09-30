@@ -31,6 +31,7 @@ export default function AdminOrders() {
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancellingOrder, setCancellingOrder] = useState(null);
   const [cancelForm] = Form.useForm();
+  const [verifyingAvailability, setVerifyingAvailability] = useState(false);
 
   // Use React Query hook for orders data
   const {
@@ -81,6 +82,28 @@ export default function AdminOrders() {
       message.error(
         error.response?.data?.message || "Failed to fetch order details",
       );
+    }
+  };
+
+  const handleVerifyAvailability = async (orderId) => {
+    try {
+      setVerifyingAvailability(true);
+      const response = await OrdersService.verifyAvailability(orderId);
+      setSelectedOrder(response.data.order);
+      const issueCount = response.data.issues?.length || 0;
+      if (issueCount > 0) {
+        message.warning(
+          `${issueCount} item(s) need customer attention — they've been notified`,
+        );
+      } else {
+        message.success("All items verified — stock and prices are unchanged");
+      }
+    } catch (error) {
+      message.error(
+        error.response?.data?.message || "Failed to verify availability",
+      );
+    } finally {
+      setVerifyingAvailability(false);
     }
   };
 
@@ -602,12 +625,21 @@ export default function AdminOrders() {
 
             {/* Status */}
             <Card title="Order Status" size="small">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <Tag
                   color={statusColors[selectedOrder.status]}
                   className="text-lg px-4 py-2">
                   {selectedOrder.status?.toUpperCase()}
                 </Tag>
+                {!["delivered", "cancelled", "refunded"].includes(
+                  selectedOrder.status,
+                ) && (
+                  <Button
+                    onClick={() => handleVerifyAvailability(selectedOrder._id)}
+                    loading={verifyingAvailability}>
+                    Verify Stock &amp; Price
+                  </Button>
+                )}
                 <Select
                   value={selectedOrder.status}
                   onChange={(newStatus) =>
@@ -628,6 +660,26 @@ export default function AdminOrders() {
                   <Select.Option value="cancelled">Cancelled</Select.Option>
                 </Select>
               </div>
+              {selectedOrder.fulfillment?.needsCustomerAction && (
+                <div className="mt-4 p-3 bg-amber-50 rounded">
+                  <p className="font-medium text-amber-800 mb-1">
+                    Waiting on the customer:
+                  </p>
+                  <ul className="list-disc list-inside text-sm text-amber-700">
+                    {selectedOrder.items
+                      .filter(
+                        (item) =>
+                          item.availabilityIssue?.issueType &&
+                          !item.resolution?.action,
+                      )
+                      .map((item) => (
+                        <li key={item._id}>
+                          {item.name} — {item.availabilityIssue.issueType.replace("_", " ")}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
               {selectedOrder.status === "cancelled" && (
                 <div className="mt-4 p-3 bg-red-50 rounded">
                   <div className="flex items-center justify-between mb-2">
@@ -656,6 +708,49 @@ export default function AdminOrders() {
                 </div>
               )}
             </Card>
+
+            {/* Customer Edit History */}
+            {selectedOrder.editHistory?.length > 0 && (
+              <Card title="Customer Edit History" size="small">
+                <div className="space-y-4">
+                  {[...selectedOrder.editHistory]
+                    .reverse()
+                    .map((edit, index) => (
+                      <div
+                        key={index}
+                        className="border border-gray-200 rounded-lg p-3">
+                        <p className="text-xs font-medium text-gray-500 mb-2">
+                          {new Date(edit.editedAt).toLocaleString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}{" "}
+                          — edited by{" "}
+                          <span className="capitalize">{edit.editedBy}</span>
+                        </p>
+                        <div className="space-y-1.5">
+                          {edit.changes.map((change, i) => (
+                            <div key={i} className="text-sm">
+                              <span className="font-semibold text-gray-700">
+                                {change.field}:
+                              </span>{" "}
+                              <span className="text-red-500 line-through">
+                                {String(change.previous)}
+                              </span>{" "}
+                              <span className="text-gray-400">→</span>{" "}
+                              <span className="text-green-600 font-medium">
+                                {String(change.updated)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </Card>
+            )}
           </div>
         )}
       </Modal>

@@ -119,6 +119,40 @@ export function useUpdateOrderStatus() {
 }
 
 /**
+ * Hook for a customer to edit their own order (items/address/delivery
+ * date+slot/notes) while it's still pending/confirmed/processing.
+ */
+export function useUpdateOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ orderId, data }) => ordersAPI.update(orderId, data),
+    onSuccess: (response, { orderId }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
+    },
+  });
+}
+
+/**
+ * Hook to resolve a flagged order item (stock/price issue found by the
+ * delivery-day availability check) — replace, remove, accept the new
+ * price, or accept a reduced/partial quantity.
+ */
+export function useResolveOrderItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ orderId, itemId, data }) =>
+      ordersAPI.resolveItem(orderId, itemId, data),
+    onSuccess: (response, { orderId }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
+    },
+  });
+}
+
+/**
  * Hook to refresh refund status from Razorpay
  */
 export function useRefreshRefundStatus() {

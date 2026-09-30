@@ -90,6 +90,13 @@ const userSchema = new mongoose.Schema(
           type: Boolean,
           default: false,
         },
+        // Map-confirmed coordinates for this address, set when the
+        // customer picks/drags a pin on the map (add-address page or
+        // checkout's delivery-location confirmation step).
+        location: {
+          lat: Number,
+          lng: Number,
+        },
       },
     ],
     isVerified: {
@@ -106,6 +113,10 @@ const userSchema = new mongoose.Schema(
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
+    deliveryPreference: {
+      date: Date,
+      selectedAt: Date,
+    },
   },
   {
     timestamps: true,

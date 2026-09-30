@@ -32,7 +32,7 @@ export default function CreateUpdateProductModal({
 
   const [fileList, setFileList] = useState([]);
   const [categoriesOptions, setCategoriesOptions] = useState([]);
-  const [productBenifits, setProductBenifits] = useState([]);
+  const [productBenifits] = useState([]);
   const [isFormReady, setIsFormReady] = useState(false);
 
   const isEditMode = !!product;
@@ -113,6 +113,9 @@ export default function CreateUpdateProductModal({
     } else {
       setIsFormReady(true);
     }
+    // isFormReady is intentionally excluded: it is set by this effect, and
+    // including it would re-run the effect on every toggle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, form]);
 
   /**
@@ -161,11 +164,6 @@ export default function CreateUpdateProductModal({
    */
   const handleSubmit = async (values) => {
     try {
-      // JSON data
-      const payload = {
-        ...values,
-      };
-
       const formData = new FormData();
 
       Object.entries(values).forEach(([key, value]) => {
@@ -278,7 +276,6 @@ export default function CreateUpdateProductModal({
 
             trackInventory: true,
             isBestSeller: false,
-            healthBenefits: [],
             storageInstructions: "",
             isOrganic: false,
             isSeasonal: false,

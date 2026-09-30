@@ -41,7 +41,7 @@ export default function HelpCenterModal({ open, onClose }) {
           </h3>
 
           <p className="mt-2 text-gray-700 leading-6">
-            We're here to make your fresh fruit and vegetable shopping
+            We&apos;re here to make your fresh fruit and vegetable shopping
             experience smooth and hassle-free. You can place orders{" "}
             <strong>24/7</strong>, and your order will be delivered during your{" "}
             <strong>selected delivery slot</strong>.

@@ -268,7 +268,7 @@ async function seedData() {
         status: orderStatuses[Math.floor(Math.random() * orderStatuses.length)],
       };
 
-      const order = await Order.create(orderData);
+      await Order.create(orderData);
       ordersCreated++;
       
       if (ordersCreated % 5 === 0) {

@@ -1,16 +1,33 @@
 import {
+  sendAdminOrderNotificationEmail,
   sendOrderConfirmationEmail,
   sendOrderShippedEmail,
+  sendOrderUpdatedEmail,
 } from "../config/email.js";
 import { createRefund, fetchRefund } from "../config/razorpay.js";
+import {
+  isPincodeServiceable,
+  NON_SERVICEABLE_MESSAGE,
+} from "../config/serviceableAreas.js";
 import shipRocketService from "../config/ship-rocket-config.js";
 // import shipRocketService from '../config/shipRocket.js';
 import Cart from "../models/Cart.js";
+import Coupon from "../models/Coupon.js";
 import Notification from "../models/Notification.js";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
+import loyaltyService from "../services/loyaltyService.js";
+import orderFulfillmentService from "../services/orderFulfillmentService.js";
 import orderNotificationService from "../services/orderNotificationService.js";
+import {
+  getAvailability,
+  getTodayId,
+  isTodayOrTomorrow,
+  releaseSlot,
+  reserveSlot,
+  toDateId,
+} from "../utils/deliveryCapacity.js";
 import { cancelShiprocketShipment } from "./shipmentController.js";
 
 /**
@@ -127,6 +144,227 @@ class OrderController {
     }
   }
 
+  async checkStockAvailability(req, res) {
+    try {
+      const { items, deliveryDate } = req.body;
+
+      if (!items || items.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Items are required",
+        });
+      }
+
+      const deliveryDateId = deliveryDate ? toDateId(deliveryDate) : null;
+      if (!deliveryDateId || !isTodayOrTomorrow(deliveryDateId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Delivery date must be today or tomorrow",
+        });
+      }
+
+      const isTodayDelivery = deliveryDateId === getTodayId();
+
+      const results = [];
+      for (const item of items) {
+        const product = await Product.findById(item.product);
+
+        if (!product || !product.isActive) {
+          results.push({
+            product: item.product,
+            name: product?.name || item.name,
+            requestedQty: item.quantity,
+            availableQty: 0,
+            isPartial: true,
+          });
+          continue;
+        }
+
+        if (!isTodayDelivery || !product.trackInventory) {
+          results.push({
+            product: item.product,
+            name: product.name,
+            requestedQty: item.quantity,
+            availableQty: item.quantity,
+            isPartial: false,
+          });
+          continue;
+        }
+
+        const availableQty = Math.min(
+          item.quantity,
+          Math.max(product.stock, 0),
+        );
+
+        results.push({
+          product: item.product,
+          name: product.name,
+          requestedQty: item.quantity,
+          availableQty,
+          isPartial: availableQty < item.quantity,
+        });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          items: results,
+          hasPartial: results.some((r) => r.isPartial),
+        },
+      });
+    } catch (error) {
+      console.error("Check stock availability error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to check stock availability",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Re-verifies a scheduled order's items against the live catalog —
+   * stock and price can both move between checkout and delivery day for a
+   * vegetables/fruits business, so this is the "check actual stock before
+   * preparing" / "recheck on delivery day" gate. Run automatically by the
+   * daily fulfillment job (see jobs/orderVerificationJob.js) and available
+   * here for an admin to trigger manually before confirming/preparing an
+   * order. Notifies the customer if anything needs their attention.
+   * @route POST /api/orders/:id/verify-availability
+   * @access Private (Admin only)
+   */
+  async verifyAvailability(req, res) {
+    try {
+      const { id } = req.params;
+      const order = await Order.findById(id).populate("user");
+
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found",
+        });
+      }
+
+      if (["delivered", "cancelled", "refunded"].includes(order.status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot verify availability for an order that is already ${order.status}`,
+        });
+      }
+
+      const { issues } =
+        await orderFulfillmentService.verifyOrderAvailability(order);
+
+      if (issues.length > 0) {
+        await orderNotificationService.notifyCustomerOfAvailabilityIssues(
+          order,
+          order.user,
+          issues,
+        );
+      }
+
+      res.json({
+        success: true,
+        message: issues.length
+          ? `${issues.length} item(s) need customer attention`
+          : "All items verified — stock and prices are unchanged",
+        data: { order, issues },
+      });
+    } catch (error) {
+      console.error("Verify order availability error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to verify order availability",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Applies the customer's chosen resolution (replace / remove / accept
+   * the new price / accept a partial quantity) to one flagged order item,
+   * recalculates the order total, and — only when the total actually
+   * changed — tells the customer before delivery.
+   * @route PUT /api/orders/:id/items/:itemId/resolve
+   * @access Private (order owner or admin)
+   */
+  async resolveOrderItem(req, res) {
+    try {
+      const { id, itemId } = req.params;
+      const { action, replacementProductId, replacementVariant } = req.body;
+
+      const order = await Order.findById(id).populate("user");
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found",
+        });
+      }
+
+      const orderUserId =
+        typeof order.user === "object" && order.user._id
+          ? order.user._id.toString()
+          : order.user.toString();
+      const isOwner = orderUserId === req.user._id.toString();
+      const isAdmin = req.user.role === "admin";
+
+      if (!isOwner && !isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Not authorized to update this order",
+        });
+      }
+
+      if (["delivered", "cancelled", "refunded"].includes(order.status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot update items on an order that is already ${order.status}`,
+        });
+      }
+
+      const totalBefore = order.pricing.total;
+
+      try {
+        await orderFulfillmentService.applyItemResolution(order, itemId, {
+          action,
+          resolvedBy: isAdmin && !isOwner ? "admin" : "customer",
+          replacementProductId,
+          replacementVariant,
+        });
+      } catch (resolutionError) {
+        return res.status(400).json({
+          success: false,
+          message: resolutionError.message,
+        });
+      }
+
+      // Only announce a change once it actually moves the amount due —
+      // repeated resolutions on the same order (e.g. two flagged items)
+      // shouldn't spam the customer per item.
+      if (Math.abs(order.pricing.total - totalBefore) >= 1) {
+        order.fulfillment.customerNotifiedOfChangeAt = new Date();
+        await order.save();
+        await orderNotificationService.notifyCustomerOfOrderUpdate(
+          order,
+          order.user,
+        );
+      }
+
+      res.json({
+        success: true,
+        message: "Item updated successfully",
+        data: order,
+      });
+    } catch (error) {
+      console.error("Resolve order item error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update order item",
+        error: error.message,
+      });
+    }
+  }
+
   /**
    * Create new order
    * @route POST /api/orders
@@ -153,15 +391,39 @@ class OrderController {
         });
       }
 
-      // Only allow prepaid/online payment (reject COD)
-      // if (paymentMethod && paymentMethod.toLowerCase() === "cod") {
-      //   return res.status(400).json({
-      //     success: false,
-      //     message:
-      //       "Cash on Delivery is not supported. Please use online payment.",
-      //   });
-      // }
-      // const paymentMethod = "cod";
+      // Final server-side pincode serviceability check — the authoritative
+      // gate for order placement, regardless of any frontend check already
+      // performed. Serviceable pincodes are configurable via
+      // SERVICEABLE_PINCODES (see config/serviceableAreas.js).
+      if (!isPincodeServiceable(shippingAddress?.zipCode)) {
+        return res.status(400).json({
+          success: false,
+          message: NON_SERVICEABLE_MESSAGE,
+          code: "PINCODE_NOT_SERVICEABLE",
+        });
+      }
+
+      // Validate delivery date is today/tomorrow and still has capacity
+      const deliveryDateId = deliveryDate ? toDateId(deliveryDate) : null;
+      if (!deliveryDateId || !isTodayOrTomorrow(deliveryDateId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Delivery date must be today or tomorrow",
+          code: "DELIVERY_DATE_UNAVAILABLE",
+        });
+      }
+
+      const deliveryAvailability = await getAvailability([deliveryDateId]);
+      if (!deliveryAvailability[deliveryDateId]) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Selected delivery date is no longer available. Please choose another date.",
+          code: "DELIVERY_DATE_UNAVAILABLE",
+        });
+      }
+
+      const isTodayDelivery = deliveryDateId === getTodayId();
 
       const processedItems = [];
       let calculatedSubtotal = 0;
@@ -188,7 +450,11 @@ class OrderController {
           });
         }
 
-        if (product.trackInventory && product.stock < item.quantity) {
+        if (
+          isTodayDelivery &&
+          product.trackInventory &&
+          product.stock < item.quantity
+        ) {
           return res.status(400).json({
             success: false,
             message: `${product.name}: Only ${product.stock} items available`,
@@ -207,6 +473,7 @@ class OrderController {
           slug: product.slug,
           image: product.images?.[0]?.url || "",
           quantity: item.quantity,
+          fulfilledQuantity: item.quantity,
           variant: variant.label, // ✅ changed
           price: itemPrice, // ✅ changed
           subtotal: itemSubtotal,
@@ -219,47 +486,53 @@ class OrderController {
       let discount = 0;
       let deliveryFee = calculatedSubtotal > 199 ? 0 : 25;
       let couponData = null;
+      // Set once a valid coupon is found below, so it can be marked used
+      // after the order is actually created.
+      let couponDoc = null;
 
-      // Coupon logic commented out (not in use)
-      /* 
-      // Apply coupon discount if provided
+      // Redeem a loyalty coupon (see Coupon model / loyaltyService) if one
+      // was supplied. Each coupon belongs to exactly one user and can only
+      // ever be redeemed once.
       if (coupon && coupon.code) {
-        // ✅ Check if user has already used this coupon
-        const existingOrderWithCoupon = await Order.findOne({
+        couponDoc = await Coupon.findOne({
+          code: coupon.code.trim().toUpperCase(),
           user: req.user._id,
-          'coupon.code': coupon.code,
         });
 
-        if (existingOrderWithCoupon) {
+        if (!couponDoc) {
           return res.status(400).json({
             success: false,
-            message: `You have already used the coupon code "${coupon.code}". Each coupon can only be used once per user.`,
+            message: "Invalid coupon code",
+          });
+        }
+        if (couponDoc.isUsed) {
+          return res.status(400).json({
+            success: false,
+            message: "This coupon has already been used",
+          });
+        }
+        if (couponDoc.expiresAt && couponDoc.expiresAt < new Date()) {
+          return res.status(400).json({
+            success: false,
+            message: "This coupon has expired",
           });
         }
 
-        // Validate coupon (basic validation - you can expand this with a Coupon model)
-        if (coupon.code === 'NEW10026') {
-          discount = 26;
-          deliveryFee = 0; // Free delivery for this coupon
-          couponData = {
-            code: coupon.code,
-            discount: discount,
-            freeDelivery: true,
-          };
-        } else if (coupon.discount && coupon.discount > 0) {
-          // Accept any coupon passed from frontend with validation
-          discount = coupon.discount;
-          if (coupon.freeDelivery) {
-            deliveryFee = 0;
-          }
-          couponData = {
-            code: coupon.code,
-            discount: coupon.discount,
-            freeDelivery: coupon.freeDelivery || false,
-          };
+        discount =
+          couponDoc.discountType === "percentage"
+            ? Math.round(
+                (calculatedSubtotal * couponDoc.discountValue) / 100,
+              )
+            : couponDoc.discountValue;
+        if (couponDoc.freeDelivery) {
+          deliveryFee = 0;
         }
+        couponData = {
+          code: couponDoc.code,
+          discount,
+          freeDelivery: couponDoc.freeDelivery,
+        };
       }
-      */
 
       // Calculate final total (never negative)
       const calculatedTotal = Math.max(
@@ -270,15 +543,6 @@ class OrderController {
       // Validate frontend pricing matches backend calculation (with tolerance for rounding)
       if (frontendPricing) {
         // Allow 1 rupee tolerance for rounding differences
-        const subtotalDiff = Math.abs(
-          frontendPricing.subtotal - calculatedSubtotal,
-        );
-        const discountDiff = Math.abs(
-          (frontendPricing.discount || 0) - discount,
-        );
-        const shippingDiff = Math.abs(
-          frontendPricing.shippingFee - deliveryFee,
-        );
         const totalDiff = Math.abs(frontendPricing.total - calculatedTotal);
 
         // Reject order if total difference is more than ₹5 (security check for price manipulation)
@@ -314,6 +578,10 @@ class OrderController {
           total: calculatedTotal,
         },
         coupon: couponData,
+        fulfillment: {
+          originalTotal: calculatedTotal,
+          needsCustomerAction: false,
+        },
         notes: notes || undefined,
         deliveryDate: deliveryDate ? new Date(deliveryDate) : undefined,
         deliveryTimeSlot: deliveryTimeSlot || undefined,
@@ -326,66 +594,78 @@ class OrderController {
         ],
       });
 
-      // For COD orders: Clear cart and send confirmation email immediately
+      await reserveSlot(deliveryDateId);
+
+      if (couponDoc) {
+        couponDoc.isUsed = true;
+        couponDoc.usedAt = new Date();
+        couponDoc.usedOnOrder = order._id;
+        await couponDoc.save();
+      }
+
       if (paymentMethod === "cod") {
         // Clear user's cart
         await Cart.findOneAndUpdate({ user: req.user._id }, { items: [] });
-
-        // Send order confirmation email
-        try {
-          const user = await User.findById(req.user._id);
-          await sendOrderConfirmationEmail(order, user);
-        } catch (emailError) {
-          console.error(
-            "❌ Failed to send order confirmation email:",
-            emailError,
-          );
-          // Don't fail the order if email fails
-        }
-
-        // Create notification for order creation
-        try {
-          await Notification.createNotification(order.user, {
-            type: "order_created",
-            title: "Order Placed Successfully",
-            message: `Your order #${order.orderNumber} has been placed successfully. You will pay ₹${order.pricing.total} on delivery.`,
-            order: order._id,
-            data: {
-              orderNumber: order.orderNumber,
-              status: "pending",
-              total: order.pricing.total,
-              paymentMethod: "COD",
-            },
-          });
-        } catch (notificationError) {
-          console.error(
-            "❌ Failed to create order notification:",
-            notificationError,
-          );
-          // Don't fail the order if notification fails
-        }
-
-        // Send WhatsApp order confirmation (customer) and new-order alert
-        // (vendor/admin). req.user is already the full user doc attached
-        // by the auth middleware, so no extra lookup is needed.
-        try {
-          await orderNotificationService.sendOrderWhatsAppNotifications(
-            order,
-            req.user,
-          );
-        } catch (whatsappError) {
-          console.error(
-            "❌ Failed to send WhatsApp order notifications:",
-            whatsappError,
-          );
-          // Don't fail the order if WhatsApp delivery fails
-        }
 
         res.status(201).json({
           success: true,
           message: "Order placed successfully! Pay on delivery.",
           data: order,
         });
+
+        // Everything below runs after the response has already been sent.
+        (async () => {
+          try {
+            const user = await User.findById(req.user._id);
+            await sendOrderConfirmationEmail(order, user);
+          } catch (emailError) {
+            console.error(
+              "❌ Failed to send order confirmation email:",
+              emailError,
+            );
+          }
+
+          try {
+            await sendAdminOrderNotificationEmail(order, req.user);
+          } catch (adminEmailError) {
+            console.error(
+              "❌ Failed to send admin order notification email:",
+              adminEmailError,
+            );
+          }
+
+          try {
+            await Notification.createNotification(order.user, {
+              type: "order_created",
+              title: "Order Placed Successfully",
+              message: `Your order #${order.orderNumber} has been placed successfully. You will pay ₹${order.pricing.total} on delivery.`,
+              order: order._id,
+              data: {
+                orderNumber: order.orderNumber,
+                status: "pending",
+                total: order.pricing.total,
+                paymentMethod: "COD",
+              },
+            });
+          } catch (notificationError) {
+            console.error(
+              "❌ Failed to create order notification:",
+              notificationError,
+            );
+          }
+
+          try {
+            await orderNotificationService.sendOrderWhatsAppNotifications(
+              order,
+              req.user,
+            );
+          } catch (whatsappError) {
+            console.error(
+              "❌ Failed to send WhatsApp order notifications:",
+              whatsappError,
+            );
+          }
+        })();
       } else {
         // For online payment: Don't clear cart or send email yet
         // These will be done after successful payment verification
@@ -423,6 +703,265 @@ class OrderController {
       res.status(500).json({
         success: false,
         message: "Failed to create order",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Lets the customer edit their own order — item quantities/removal,
+   * delivery address, delivery date/slot, and notes — while it's still
+   * pending or confirmed. Once it enters processing (or later) it can no
+   * longer be changed here. Items are never added, only adjusted/removed,
+   * since prices are locked to what was charged at checkout.
+   * @route PUT /api/orders/:id
+   * @access Private (order owner only)
+   */
+  async updateOrder(req, res) {
+    try {
+      const { id } = req.params;
+      const { items, addressId, deliveryDate, deliveryTimeSlot, notes } =
+        req.body;
+
+      const order = await Order.findById(id);
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found",
+        });
+      }
+
+      // Order.user comes back populated (see the schema-wide pre(/^find/)
+      // hook), so it's a User document here, not a plain ObjectId.
+      const orderUserId =
+        typeof order.user === "object" && order.user._id
+          ? order.user._id.toString()
+          : order.user.toString();
+
+      if (orderUserId !== req.user._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "Not authorized to update this order",
+        });
+      }
+
+      // Editing closes once the order enters processing — cancellation
+      // (cancelOrder, below) stays allowed a bit longer.
+      const EDITABLE_STATUSES = ["pending", "confirmed"];
+      if (!EDITABLE_STATUSES.includes(order.status)) {
+        return res.status(400).json({
+          success: false,
+          message: `This order can no longer be edited (status: ${order.status}).`,
+        });
+      }
+
+      // Human-readable before/after per changed field, shown to admins on
+      // the order (see editHistory on the model).
+      const changes = [];
+      const originalTotal = order.pricing.total;
+
+      // --- Items: adjust quantity or remove; never add new products ---
+      if (Array.isArray(items) && items.length > 0) {
+        const updatesById = new Map(
+          items.map((i) => [i._id, Number(i.quantity)]),
+        );
+
+        order.items.forEach((item) => {
+          const newQty = updatesById.get(item._id.toString());
+          if (newQty === undefined) return;
+          if (newQty <= 0) {
+            changes.push({
+              field: "Item removed",
+              previous: `${item.name} — qty ${item.quantity}`,
+              updated: "Removed",
+            });
+          } else if (newQty !== item.quantity) {
+            changes.push({
+              field: `Quantity — ${item.name}`,
+              previous: item.quantity,
+              updated: newQty,
+            });
+          }
+        });
+
+        order.items = order.items.filter((item) => {
+          const update = updatesById.get(item._id.toString());
+          return update === undefined || update > 0;
+        });
+
+        order.items.forEach((item) => {
+          const newQty = updatesById.get(item._id.toString());
+          if (newQty > 0) {
+            item.quantity = newQty;
+            item.fulfilledQuantity = newQty;
+            item.subtotal = item.price * newQty;
+          }
+        });
+
+        if (order.items.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "An order must have at least one item — cancel the order instead of removing everything.",
+          });
+        }
+      }
+
+      // --- Delivery address ---
+      if (addressId) {
+        const user = await User.findById(req.user._id);
+        const address = user.addresses.id(addressId);
+        if (!address) {
+          return res.status(400).json({
+            success: false,
+            message: "Address not found",
+          });
+        }
+        if (!isPincodeServiceable(address.zipCode)) {
+          return res.status(400).json({
+            success: false,
+            message: NON_SERVICEABLE_MESSAGE,
+            code: "PINCODE_NOT_SERVICEABLE",
+          });
+        }
+
+        const oldAddr = order.shippingAddress;
+        const formatAddr = (a) =>
+          `${a.street}, ${a.city}, ${a.state} - ${a.zipCode}`;
+        const newAddrLine = formatAddr(address);
+        if (formatAddr(oldAddr) !== newAddrLine) {
+          changes.push({
+            field: "Delivery address",
+            previous: formatAddr(oldAddr),
+            updated: newAddrLine,
+          });
+        }
+
+        order.shippingAddress = {
+          fullName: address.fullName,
+          phone: address.phone,
+          street: address.street,
+          area: address.area,
+          city: address.city,
+          state: address.state,
+          zipCode: address.zipCode,
+          country: address.country || "India",
+          landmark: address.landmark,
+        };
+      }
+
+      // --- Delivery date / slot (releases the old capacity slot and
+      // reserves the new one, same as at checkout) ---
+      if (deliveryDate) {
+        const newDateId = toDateId(deliveryDate);
+        const oldDateId = order.deliveryDate
+          ? toDateId(order.deliveryDate)
+          : null;
+
+        if (newDateId !== oldDateId) {
+          if (!isTodayOrTomorrow(newDateId)) {
+            return res.status(400).json({
+              success: false,
+              message: "Delivery date must be today or tomorrow",
+              code: "DELIVERY_DATE_UNAVAILABLE",
+            });
+          }
+          const availability = await getAvailability([newDateId]);
+          if (!availability[newDateId]) {
+            return res.status(400).json({
+              success: false,
+              message:
+                "Selected delivery date is no longer available. Please choose another date.",
+              code: "DELIVERY_DATE_UNAVAILABLE",
+            });
+          }
+          await reserveSlot(newDateId);
+          if (oldDateId) await releaseSlot(oldDateId);
+          changes.push({
+            field: "Delivery date",
+            previous: oldDateId || "Not set",
+            updated: newDateId,
+          });
+          order.deliveryDate = new Date(deliveryDate);
+        }
+      }
+
+      if (deliveryTimeSlot && deliveryTimeSlot !== order.deliveryTimeSlot) {
+        changes.push({
+          field: "Delivery time slot",
+          previous: order.deliveryTimeSlot || "Not set",
+          updated: deliveryTimeSlot,
+        });
+        order.deliveryTimeSlot = deliveryTimeSlot;
+      }
+
+      if (notes !== undefined && notes !== (order.notes || "")) {
+        changes.push({
+          field: "Delivery instructions",
+          previous: order.notes || "(none)",
+          updated: notes || "(none)",
+        });
+        order.notes = notes;
+      }
+
+      // --- Recalculate pricing from the (possibly changed) items ---
+      const subtotal = order.items.reduce(
+        (sum, i) => sum + i.price * i.quantity,
+        0,
+      );
+      const discount = order.pricing.discount || 0;
+      const shippingFee = subtotal > 199 ? 0 : 25;
+      const total = Math.max(0, subtotal - discount + shippingFee);
+
+      order.pricing.subtotal = subtotal;
+      order.pricing.shippingFee = shippingFee;
+      order.pricing.total = total;
+
+      if (total !== originalTotal) {
+        changes.push({
+          field: "Order total",
+          previous: `₹${originalTotal}`,
+          updated: `₹${total}`,
+        });
+      }
+
+      if (changes.length > 0) {
+        order.editHistory.push({
+          editedAt: new Date(),
+          editedBy: "customer",
+          changes,
+        });
+        order.statusHistory.push({
+          status: order.status,
+          note: "Order updated by customer",
+          updatedAt: new Date(),
+        });
+      }
+
+      await order.save();
+
+      res.json({
+        success: true,
+        message: "Order updated successfully",
+        data: order,
+      });
+
+      // Email the customer a summary of what changed, without holding up
+      // the response on SMTP (same reasoning as the order-creation flow).
+      if (changes.length > 0) {
+        const emailUser =
+          typeof order.user === "object" && order.user.email
+            ? order.user
+            : await User.findById(orderUserId);
+        sendOrderUpdatedEmail(order, emailUser, changes).catch((emailError) => {
+          console.error("❌ Failed to send order updated email:", emailError);
+        });
+      }
+    } catch (error) {
+      console.error("Update order error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update order",
         error: error.message,
       });
     }
@@ -483,18 +1022,28 @@ class OrderController {
           previousStatus === "cancelled" ||
           previousStatus === "refunded")
       ) {
-        // Reduce stock when order is confirmed from pending, cancelled, or refunded
+        // Reduce stock when order is confirmed from pending, cancelled, or
+        // refunded — this is the "check actual stock before preparing"
+        // gate. Reads each item's resolved fulfillment target (a removed
+        // item deducts nothing; a replaced item deducts from the
+        // replacement product instead) rather than the original quantity.
         for (const item of order.items) {
-          const product = await Product.findById(item.product);
+          const { productId, qty } =
+            orderFulfillmentService.getFulfillmentTarget(item);
+          if (qty <= 0) continue;
+
+          const product = await Product.findById(productId);
           if (product) {
-            if (product.stock < item.quantity) {
+            if (product.trackInventory && product.stock < qty) {
               return res.status(400).json({
                 success: false,
-                message: `${product.name}: Insufficient stock (available: ${product.stock}, required: ${item.quantity})`,
+                message: `${product.name}: Insufficient stock (available: ${product.stock}, required: ${qty})`,
               });
             }
-            product.stock -= item.quantity;
-            await product.save();
+            if (product.trackInventory) {
+              product.stock -= qty;
+              await product.save();
+            }
           }
         }
 
@@ -548,17 +1097,27 @@ class OrderController {
       ) {
         // Restore stock when order is cancelled or refunded (only if it was confirmed before)
         for (const item of order.items) {
-          const product = await Product.findById(item.product);
+          const { productId, qty } =
+            orderFulfillmentService.getFulfillmentTarget(item);
+          if (qty <= 0) continue;
+
+          const product = await Product.findById(productId);
           if (product) {
-            product.stock += item.quantity;
-            await product.save();
+            if (product.trackInventory) {
+              product.stock += qty;
+              await product.save();
+            }
           }
         }
+        await releaseSlot(order.deliveryDate);
       } else if (status === "confirmed" && previousStatus !== "confirmed") {
         // Increment sales count when order is confirmed for the first time
         for (const item of order.items) {
-          await Product.findByIdAndUpdate(item.product, {
-            $inc: { salesCount: item.quantity },
+          const { productId, qty } =
+            orderFulfillmentService.getFulfillmentTarget(item);
+          if (qty <= 0) continue;
+          await Product.findByIdAndUpdate(productId, {
+            $inc: { salesCount: qty },
           });
         }
       } else if (status === "delivered" && previousStatus !== "delivered") {
@@ -572,8 +1131,11 @@ class OrderController {
       ) {
         // Decrement sales count when confirmed order is cancelled/refunded
         for (const item of order.items) {
-          await Product.findByIdAndUpdate(item.product, {
-            $inc: { salesCount: -item.quantity },
+          const { productId, qty } =
+            orderFulfillmentService.getFulfillmentTarget(item);
+          if (qty <= 0) continue;
+          await Product.findByIdAndUpdate(productId, {
+            $inc: { salesCount: -qty },
           });
         }
       }
@@ -657,6 +1219,19 @@ class OrderController {
       } catch (notificationError) {
         console.error("❌ Failed to create notification:", notificationError);
         // Don't fail the status update if notification fails
+      }
+
+      // Every 10th delivered order earns the customer a loyalty coupon.
+      if (status === "delivered" && previousStatus !== "delivered") {
+        try {
+          const user = await User.findById(order.user);
+          await loyaltyService.checkAndGrantMilestoneCoupon(order.user, user);
+        } catch (loyaltyError) {
+          console.error(
+            "❌ Failed to check/grant loyalty milestone coupon:",
+            loyaltyError,
+          );
+        }
       }
 
       res.json({
@@ -748,7 +1323,6 @@ class OrderController {
           cancellationResults.errors.push(`Shiprocket: ${shipError.message}`);
           // Continue with order cancellation even if Shiprocket fails
         }
-      } else {
       }
 
       // STEP 2: Process refund for prepaid orders
@@ -820,17 +1394,44 @@ class OrderController {
           // Continue with order cancellation even if refund fails
         }
       }
-      // STEP 3: Restore product stock
+      // STEP 3: Restore product stock — only if this order had actually
+      // had stock deducted for it (i.e. it was confirmed/processing/
+      // shipped already; a still-"pending" order never touched stock in
+      // the first place, see updateOrderStatus). Reads each item's
+      // resolved fulfillment target so a replaced/removed item restores
+      // the right product/quantity, not the originally-ordered one.
       try {
-        for (const item of order.items) {
-          await Product.findByIdAndUpdate(item.product, {
-            $inc: { stock: item.quantity },
-          });
+        if (
+          orderFulfillmentService.STATUSES_WITH_STOCK_DEDUCTED.includes(
+            order.status,
+          )
+        ) {
+          for (const item of order.items) {
+            const { productId, qty } =
+              orderFulfillmentService.getFulfillmentTarget(item);
+            if (qty <= 0) continue;
+            const product = await Product.findById(productId);
+            if (product?.trackInventory) {
+              await Product.findByIdAndUpdate(productId, {
+                $inc: { stock: qty },
+              });
+            }
+          }
         }
         cancellationResults.stockRestored = true;
       } catch (stockError) {
         console.error("❌ Error restoring stock:", stockError.message);
         cancellationResults.errors.push(`Stock: ${stockError.message}`);
+      }
+
+      // Release the delivery capacity this order had reserved
+      try {
+        await releaseSlot(order.deliveryDate);
+      } catch (capacityError) {
+        console.error(
+          "❌ Error releasing delivery capacity:",
+          capacityError.message,
+        );
       }
 
       // STEP 4: Update order status to cancelled

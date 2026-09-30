@@ -95,7 +95,10 @@ export const useCartStore = create(
       },
 
       /**
-       * Increment item quantity by 1
+       * Increment item quantity by 1. Reads the current quantity from state
+       * itself, so rapid clicks (or any caller with a slightly stale copy
+       * of the quantity) can never lose an increment the way computing
+       * `quantity + 1` outside the store and calling updateQuantity() can.
        * @param {string} productId - ID of product
        */
       incrementItem: (productId) => {
@@ -109,15 +112,17 @@ export const useCartStore = create(
       },
 
       /**
-       * Decrement item quantity by 1
-       * Removes item if quantity becomes 0
+       * Decrement item quantity by 1. Removes the item once it would drop
+       * to 0. Reads the current quantity from state itself (not from a
+       * value the caller computed earlier), so it stays correct even if the
+       * caller's own copy of the quantity is stale.
        * @param {string} productId - ID of product
        */
       decrementItem: (productId) => {
         set((state) => ({
           items: state.items
             .map((item) =>
-              item.id === productId && item.quantity > 1
+              item.id === productId
                 ? { ...item, quantity: item.quantity - 1 }
                 : item,
             )

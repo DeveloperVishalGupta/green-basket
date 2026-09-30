@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import PageHeader from '@/components/layout/PageHeader';
 import { Button } from 'antd';
 import { useRouter } from 'next/navigation';
 
@@ -12,22 +12,8 @@ export default function TermsPage() {
     const router = useRouter();
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <button
-                            onClick={() => router.back()}
-                            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-all"
-                        >
-                            <ArrowLeftOutlined className="text-xl" />
-                        </button>
-                        <h1 className="text-xl font-bold text-gray-900">Terms & Conditions</h1>
-                        <div className="w-10"></div>
-                    </div>
-                </div>
-            </header>
+        <div className="min-h-below-header bg-gray-50">
+            <PageHeader title="Terms & Conditions" maxWidth="max-w-4xl" />
 
             {/* Content */}
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -41,8 +27,8 @@ export default function TermsPage() {
                     <section className="mb-8">
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to Green Basket</h2>
                         <p className="text-gray-700 leading-relaxed">
-                            These Terms and Conditions ("Terms") govern your access to and use of the Green Basket website, 
-                            mobile applications, and related services (collectively, the "Platform"). By accessing or using 
+                            These Terms and Conditions (&quot;Terms&quot;) govern your access to and use of the Green Basket website,
+                            mobile applications, and related services (collectively, the &quot;Platform&quot;). By accessing or using
                             the Platform, you agree to be bound by these Terms. If you do not agree to these Terms, please 
                             do not use the Platform.
                         </p>
@@ -152,14 +138,14 @@ export default function TermsPage() {
                             </p>
                             <p className="leading-relaxed">
                                 <strong>5.2 Non-Returnable Items:</strong> Certain items including intimate wear, cosmetics, 
-                                personalized items, and sale items marked as "Final Sale" cannot be returned.
+                                personalized items, and sale items marked as &quot;Final Sale&quot; cannot be returned.
                             </p>
                             <p className="leading-relaxed">
                                 <strong>5.3 Refund Processing:</strong> Refunds will be processed within 5-7 business days after 
                                 we receive and inspect the returned item. Refunds will be issued to the original payment method.
                             </p>
                             <p className="leading-relaxed">
-                                <strong>5.4 Return Shipping:</strong> Return shipping costs are the customer's responsibility 
+                                <strong>5.4 Return Shipping:</strong> Return shipping costs are the customer&apos;s responsibility
                                 unless the return is due to our error or a defective product.
                             </p>
                         </div>
@@ -192,7 +178,7 @@ export default function TermsPage() {
                             <ul className="list-disc list-inside space-y-2 ml-4">
                                 <li>Use the Platform for any illegal or unauthorized purpose</li>
                                 <li>Attempt to gain unauthorized access to our systems or networks</li>
-                                <li>Interfere with or disrupt the Platform's operation</li>
+                                <li>Interfere with or disrupt the Platform&apos;s operation</li>
                                 <li>Upload or transmit viruses or malicious code</li>
                                 <li>Collect or harvest user information without consent</li>
                                 <li>Impersonate another person or entity</li>
@@ -206,7 +192,7 @@ export default function TermsPage() {
                         <h3 className="text-xl font-bold text-gray-900 mb-3">8. Limitation of Liability</h3>
                         <div className="space-y-3 text-gray-700">
                             <p className="leading-relaxed">
-                                <strong>8.1 Disclaimer:</strong> The Platform is provided "as is" without warranties of any kind. 
+                                <strong>8.1 Disclaimer:</strong> The Platform is provided &quot;as is&quot; without warranties of any kind.
                                 We do not guarantee that the Platform will be error-free or uninterrupted.
                             </p>
                             <p className="leading-relaxed">
@@ -271,7 +257,7 @@ export default function TermsPage() {
                     {/* Agreement */}
                     <section className="border-t border-gray-200 pt-6">
                         <p className="text-sm text-gray-600 italic">
-                            By using Green Basket's Platform, you acknowledge that you have read, understood, and agree 
+                            By using Green Basket&apos;s Platform, you acknowledge that you have read, understood, and agree 
                             to be bound by these Terms and Conditions.
                         </p>
                     </section>

@@ -23,6 +23,11 @@ router.get('/analytics/products', adminController.getProductAnalytics);
 router.get('/analytics/orders', adminController.getOrderAnalytics);
 
 /**
+ * Shopping list (quantities needed per product for a delivery date)
+ */
+router.get('/orders/shopping-list', adminController.getShoppingList);
+
+/**
  * User management routes
  */
 router.get('/users', adminController.getAllUsers);

@@ -22,7 +22,8 @@ export default function ProductCard({ product }) {
   const { message } = App.useApp();
   const router = useRouter();
   const { user } = useAuth();
-  const { addItem, items, updateQuantity, setPendingProduct } = useCartStore();
+  const { addItem, items, incrementItem, decrementItem, removeItem, setPendingProduct } =
+    useCartStore();
   const [mounted, setMounted] = useState(false);
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [showCartNotification, setShowCartNotification] = useState(false);
@@ -87,7 +88,6 @@ export default function ProductCard({ product }) {
   const ratingCount = product.rating?.count ?? product.ratingCount ?? 0;
 
   const handleAddToCart = (e) => {
-    const renderCount = 0;
     e.preventDefault();
     if (!user) {
       setPendingProduct(
@@ -127,15 +127,15 @@ export default function ProductCard({ product }) {
 
   const handleIncrement = (e) => {
     e.preventDefault();
-    updateQuantity(cartItemKey, quantity + 1);
+    incrementItem(cartItemKey);
   };
 
   const handleDecrement = (e) => {
     e.preventDefault();
     if (quantity > 1) {
-      updateQuantity(cartItemKey, quantity - 1);
+      decrementItem(cartItemKey);
     } else {
-      updateQuantity(cartItemKey, 0);
+      removeItem(cartItemKey);
       message.info("Item removed from cart");
     }
   };

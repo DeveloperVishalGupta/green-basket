@@ -269,6 +269,14 @@ export const ordersAPI = {
   create: (orderData) => apiClient.post("/api/orders", orderData),
 
   /**
+   * Check stock availability for cart items against a delivery date
+   * @param {Array} items - [{ product, quantity, name }]
+   * @param {string} deliveryDate - "YYYY-MM-DD"
+   */
+  checkStock: (items, deliveryDate) =>
+    apiClient.post("/api/orders/check-stock", { items, deliveryDate }),
+
+  /**
    * Update order status (Admin only)
    * @param {string} orderId - Order ID
    * @param {Object} data - { status, note }
@@ -292,11 +300,43 @@ export const ordersAPI = {
     apiClient.post(`/api/orders/${orderId}/refund/refresh`),
 
   /**
+   * Resolve a flagged order item (stock/price issue found on
+   * delivery-day/admin verification) — replace, remove, accept the new
+   * price, or accept a reduced/partial quantity.
+   * @param {string} orderId - Order ID
+   * @param {string} itemId - Order item (subdocument) ID
+   * @param {Object} data - { action, replacementProductId?, replacementVariant? }
+   */
+  resolveItem: (orderId, itemId, data) =>
+    apiClient.put(`/api/orders/${orderId}/items/${itemId}/resolve`, data),
+
+  /**
    * Get all orders (Admin only)
    * @param {Object} params - Query parameters
    */
   getAllAdmin: (params = {}) =>
     apiClient.get("/api/orders/admin/all", { params }),
+
+  /**
+   * Customer edits their own order — item quantities/removal, delivery
+   * address, delivery date/slot, and notes — while it's still
+   * pending/confirmed/processing.
+   * @param {string} orderId - Order ID
+   * @param {Object} data - { items?, addressId?, deliveryDate?, deliveryTimeSlot?, notes? }
+   */
+  update: (orderId, data) => apiClient.put(`/api/orders/${orderId}`, data),
+};
+
+/**
+ * Delivery API endpoints
+ */
+export const deliveryAPI = {
+  /**
+   * Check whether a pincode is currently serviceable
+   * @param {string} pincode - 6-digit pincode
+   */
+  checkPincode: (pincode) =>
+    apiClient.get(`/api/delivery/check-pincode/${pincode}`),
 };
 
 /**
@@ -320,6 +360,22 @@ export const usersAPI = {
    */
   changePassword: (passwordData) =>
     apiClient.put("/api/users/password", passwordData),
+
+  /**
+   * Get delivery date availability
+   * @param {string[]} dateIds - "YYYY-MM-DD" ids to check (defaults to today+tomorrow)
+   */
+  getDeliveryAvailability: (dateIds) =>
+    apiClient.get("/api/users/delivery-availability", {
+      params: dateIds ? { dates: dateIds.join(",") } : undefined,
+    }),
+
+  /**
+   * Set the user's delivery date preference
+   * @param {string} date - "YYYY-MM-DD"
+   */
+  setDeliveryPreference: (date) =>
+    apiClient.put("/api/users/delivery-preference", { date }),
 };
 
 /**
@@ -365,6 +421,17 @@ export const wishlistAPI = {
    * @param {string} productId - Product ID
    */
   check: (productId) => apiClient.get(`/api/wishlist/check/${productId}`),
+};
+
+/**
+ * Coupon API endpoints — currently coupons are only ever issued
+ * automatically as loyalty rewards for reaching an order-count milestone.
+ */
+export const couponsAPI = {
+  /**
+   * Get the current user's coupons (unused first)
+   */
+  getMy: () => apiClient.get("/api/coupons/my"),
 };
 
 /**

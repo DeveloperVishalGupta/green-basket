@@ -20,7 +20,7 @@ export default function UnauthorizedPage() {
           title={<span className="text-2xl font-bold">Access Denied</span>}
           subTitle={
             <div className="text-gray-600 space-y-2">
-              <p>You don't have permission to access this page.</p>
+              <p>You don&apos;t have permission to access this page.</p>
               <p className="text-sm">If you believe this is an error, please contact support.</p>
             </div>
           }

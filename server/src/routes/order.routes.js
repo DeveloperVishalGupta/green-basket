@@ -45,6 +45,56 @@ router.get("/", authenticate, orderController.getOrders);
 router.get("/:id", authenticate, orderController.getOrderById);
 
 /**
+ * @route   POST /api/orders/check-stock
+ * @desc    Check stock availability for cart items against a delivery date
+ * @access  Private
+ */
+router.post(
+  "/check-stock",
+  authenticate,
+  [
+    body("items").isArray({ min: 1 }).withMessage("Items are required"),
+    body("deliveryDate").notEmpty().withMessage("Delivery date is required"),
+    validate,
+  ],
+  orderController.checkStockAvailability,
+);
+
+/**
+ * @route   POST /api/orders/:id/verify-availability
+ * @desc    Re-check a scheduled order's items against live stock/prices
+ *          (before preparing it / on the delivery day) and notify the
+ *          customer if anything needs their attention
+ * @access  Private (Admin only)
+ */
+router.post(
+  "/:id/verify-availability",
+  authenticate,
+  isAuthorize("admin"),
+  orderController.verifyAvailability,
+);
+
+/**
+ * @route   PUT /api/orders/:id/items/:itemId/resolve
+ * @desc    Apply the customer's chosen resolution (replace/remove/accept
+ *          new price/accept partial quantity) to a flagged order item
+ * @access  Private (order owner or admin)
+ */
+router.put(
+  "/:id/items/:itemId/resolve",
+  authenticate,
+  [
+    body("action")
+      .isIn(["replace", "remove", "accept_price", "accept_partial"])
+      .withMessage("Invalid resolution action"),
+    body("replacementProductId").optional().isMongoId(),
+    body("replacementVariant").optional().trim(),
+    validate,
+  ],
+  orderController.resolveOrderItem,
+);
+
+/**
  * @route   POST /api/orders
  * @desc    Create new order
  * @access  Private
@@ -54,6 +104,28 @@ router.post(
   authenticate,
   validateSchema(createOrderSchema),
   orderController.createOrder,
+);
+
+/**
+ * @route   PUT /api/orders/:id
+ * @desc    Customer edits their own order (items/address/delivery
+ *          date+slot/notes) while it's still pending/confirmed/processing
+ * @access  Private (order owner only)
+ */
+router.put(
+  "/:id",
+  authenticate,
+  [
+    body("items").optional().isArray(),
+    body("items.*._id").optional().isMongoId(),
+    body("items.*.quantity").optional().isInt({ min: 0 }),
+    body("addressId").optional().isMongoId(),
+    body("deliveryDate").optional().notEmpty(),
+    body("deliveryTimeSlot").optional().trim(),
+    body("notes").optional().trim(),
+    validate,
+  ],
+  orderController.updateOrder,
 );
 
 /**

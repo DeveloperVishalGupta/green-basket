@@ -1,13 +1,17 @@
 "use client";
 
 import BottomNav from "@/components/layout/BottomNav";
+import Header from "@/components/layout/Header";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   useAddresses,
   useDeleteAddress,
   useSetDefaultAddress,
 } from "@/hooks/useAddresses";
 import {
-  ArrowLeftOutlined,
+  CheckCircleOutlined,
+  DeleteOutlined,
+  EditOutlined,
   EnvironmentOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
@@ -17,14 +21,23 @@ import { useState } from "react";
 
 /**
  * Addresses Page - Enhanced with API Integration
- * Manage saved delivery addresses
+ * Manage saved delivery addresses: add, edit, delete, and mark default.
+ *
+ * Doubles as an address *picker* when reached with `?from=<path>` (e.g.
+ * from checkout's "Manage" button) — selecting an address then navigates
+ * back to that page with `?addressId=<id>`, which re-runs its own
+ * serviceability check for the newly-selected address.
  */
 export default function AddressesPage() {
   const { message } = App.useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [addressToDelete, setAddressToDelete] = useState(null);
+
+  const from = searchParams?.get("from");
+  const couponParam = searchParams?.get("coupon");
+  const isPickerMode = Boolean(from);
 
   // Fetch addresses using React Query
   const { data, isLoading } = useAddresses();
@@ -32,18 +45,28 @@ export default function AddressesPage() {
   const setDefaultAddress = useSetDefaultAddress();
   const addresses = data?.data?.data || [];
 
+  const buildUrl = (path, extra = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(extra).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    if (couponParam) params.set("coupon", couponParam);
+    const query = params.toString();
+    return query ? `${path}?${query}` : path;
+  };
+
   const handleDelete = async () => {
-    if (!selectedAddress) return;
+    if (!addressToDelete) return;
     try {
       await deleteAddress.mutateAsync(
-        selectedAddress.id || selectedAddress._id,
+        addressToDelete.id || addressToDelete._id,
       );
       message.success("Address deleted successfully");
     } catch (error) {
       message.error(error?.message || "Failed to delete address");
     }
     setDeleteModalVisible(false);
-    setSelectedAddress(null);
+    setAddressToDelete(null);
   };
 
   const handleSetDefault = async (addressId) => {
@@ -55,67 +78,46 @@ export default function AddressesPage() {
     }
   };
 
+  // Selecting an address for a new order — hands control back to `from`
+  // (e.g. checkout) with the chosen address id, so its own serviceability
+  // check re-runs against this address's pincode.
+  const handleSelectForOrder = (addressId) => {
+    router.push(buildUrl(from, { addressId }));
+  };
+
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 via-emerald-50/20 to-teal-50/20">
-        <div className="text-center">
-          <Spin size="large" />
-          <p className="mt-4 text-gray-600 font-medium">Loading addresses...</p>
+      <>
+        <Header />
+        <div className="flex min-h-below-header items-center justify-center bg-linear-to-br from-gray-50 via-emerald-50/20 to-teal-50/20">
+          <div className="text-center">
+            <Spin size="large" />
+            <p className="mt-4 text-gray-600 font-medium">
+              Loading addresses...
+            </p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white/95 pb-20">
-      {/* Enhanced Header */}
-      <header className="sticky top-0 z-10 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-lg px-4 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                const from = searchParams?.get("from");
-                // Preserve coupon when navigating back
-                const couponParam = searchParams?.get("coupon");
-
-                if (from) {
-                  const url =
-                    couponParam && from === "/checkout"
-                      ? `${from}?coupon=${encodeURIComponent(couponParam)}`
-                      : from;
-                  router.push(url);
-                } else {
-                  router.back();
-                }
-              }}
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-all hover:scale-105">
-              <ArrowLeftOutlined className="text-xl" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                Saved Addresses
-              </h1>
-              <p className="text-sm text-gray-600">
-                {addresses.length} address{addresses.length !== 1 ? "es" : ""}
-              </p>
-            </div>
-          </div>
+    <div className="min-h-below-header bg-white/95 pb-20">
+      <Header />
+      <PageHeader
+        title={isPickerMode ? "Choose Delivery Address" : "Saved Addresses"}
+        subtitle={`${addresses.length} address${addresses.length !== 1 ? "es" : ""}`}
+        onBack={() => (from ? router.push(buildUrl(from)) : router.back())}
+        rightContent={
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => {
-              // Preserve coupon when navigating to add address
-              const couponParam = searchParams?.get("coupon");
-              const url = couponParam
-                ? `/addresses/add?coupon=${encodeURIComponent(couponParam)}`
-                : "/addresses/add";
-              router.push(url);
-            }}
-            className="bg-linear-to-r from-emerald-600 to-teal-600 border-0 rounded-xl h-10 font-semibold shadow-md hover:shadow-lg">
+            onClick={() => router.push(buildUrl("/addresses/add", { from }))}
+            className="bg-linear-to-r from-emerald-600 to-teal-600 border-0 rounded-xl h-9 font-semibold shadow-md hover:shadow-lg">
             Add New
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       <main className="mx-auto max-w-7xl px-4 py-6">
         {addresses.length === 0 ? (
@@ -133,181 +135,119 @@ export default function AddressesPage() {
               type="primary"
               size="large"
               icon={<PlusOutlined />}
-              onClick={() => router.push("/addresses/add")}
+              onClick={() => router.push(buildUrl("/addresses/add", { from }))}
               className="bg-linear-to-r from-emerald-600 to-teal-600 border-0 rounded-xl h-12 px-8 font-semibold shadow-md">
               Add Your First Address
             </Button>
           </div>
         ) : (
           <div className="space-y-4">
-            {addresses?.map((address) => (
-              // <div
-              //     key={address._id || address.id}
-              //     className="bg-white rounded-2xl p-5 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-emerald-200"
-              // >
-              //     {/* Address Header */}
-              //     <div className="flex items-start justify-between mb-4">
-              //         <div className="flex items-center gap-2">
-              //             <div className="bg-linear-to-br from-emerald-100 to-teal-100 p-2 rounded-lg">
-              //                 <EnvironmentOutlined className="text-xl text-emerald-600" />
-              //             </div>
-              //             <div>
-              //                 <span className="font-bold text-gray-900 text-lg">{address.label}</span>
-              //                 {address.isDefault && (
-              //                     <span className="ml-2 inline-flex items-center gap-1 text-xs bg-linear-to-r from-green-100 to-emerald-100 text-green-700 px-3 py-1 rounded-full font-semibold shadow-sm">
-              //                         <CheckCircleOutlined />
-              //                         Default
-              //                     </span>
-              //                 )}
-              //             </div>
-              //         </div>
-              //         <div className="flex gap-2">
-              //             <button
-              //                 onClick={() => {
-              //                     // Preserve coupon when navigating to edit
-              //                     const couponParam = searchParams?.get('coupon');
-              //                     const url = couponParam
-              //                         ? `/addresses/edit/${address.id}?coupon=${encodeURIComponent(couponParam)}`
-              //                         : `/addresses/edit/${address.id}`;
-              //                     router.push(url);
-              //                 }}
-              //                 className="p-2 hover:bg-blue-50 rounded-lg transition-all"
-              //             >
-              //                 <EditOutlined className="text-lg text-blue-600" />
-              //             </button>
-              //             <button
-              //                 onClick={() => {
-              //                     setSelectedAddress(address);
-              //                     setDeleteModalVisible(true);
-              //                 }}
-              //                 className="p-2 hover:bg-red-50 rounded-lg transition-all"
-              //             >
-              //                 <DeleteOutlined className="text-lg text-red-600" />
-              //             </button>
-              //         </div>
-              //     </div>
+            {addresses?.map((address) => {
+              const addressId = address.id || address._id;
 
-              //     {/* Address Details */}
-              //     <div className="text-gray-700 space-y-1 ml-12">
-              //         <p className="font-semibold text-gray-900">{address.fullName}</p>
-              //         <p className="text-sm">
-              //             {address.street}, {address.area}
-              //         </p>
-              //         <p className="text-sm">
-              //             {address.city}, {address.state} - {address.pincode}
-              //         </p>
-              //         {address.landmark && (
-              //             <p className="text-sm text-gray-600">Landmark: {address.landmark}</p>
-              //         )}
-              //         <p className="text-sm font-semibold mt-2 flex items-center gap-1">
-              //             📞 {address.phone}
-              //         </p>
-              //     </div>
+              return (
+                <div
+                  key={addressId}
+                  className="group rounded-2xl border border-gray-200 bg-gray-50 transition-all duration-200 hover:border-emerald-300">
+                  <div className="flex items-center gap-3 p-3">
+                    {/* Icon */}
+                    <div className="hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                      <span className="text-xl">🏠</span>
+                    </div>
 
-              //     {/* Set Default Button */}
-              //     {!address.isDefault && (
-              //         <button
-              //             onClick={() => handleSetDefault(address.id)}
-              //             className="mt-4 text-sm font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-lg transition-all ml-12"
-              //         >
-              //             ⭐ Set as Default
-              //         </button>
-              //     )}
-              // </div>
-              <div
-                key={address.id || address._id}
-                onClick={() => setSelectedAddress(address.id || address._id)}
-                className={`group cursor-pointer rounded-2xl border transition-all duration-200 border-gray-400 bg-gray-50`}>
-                <div className="flex items-center gap-3 p-3">
-                  {/* Icon */}
-                  <div className="hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                    <span className="text-xl">🏠</span>
-                  </div>
+                    {/* Content */}
+                    <div className="min-w-0 flex-1">
+                      {/* Name + Phone */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-semibold text-gray-900">
+                          {address.fullName}
+                        </h3>
 
-                  {/* Content */}
-                  <div className="min-w-0 flex-1">
-                    {/* Name + Phone */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-gray-900">
-                        {address.fullName}
-                      </h3>
+                        <span className="text-gray-400 hidden sm:inline">•</span>
 
-                      <span className="text-gray-400 hidden sm:inline">•</span>
+                        <span className="text-gray-600 text-sm">
+                          {address.phone}
+                        </span>
+                      </div>
 
-                      <span className="text-gray-600 text-sm">
-                        {address.phone}
+                      {/* Address */}
+                      <p className="mt-1 text-sm text-gray-600 line-clamp-2">
+                        {address.street},{" "}
+                        {address.area ? `${address.area}, ` : ""}
+                        {address.city}, {address.state} - {address.zipCode}
+                      </p>
+
+                      {/* Bottom */}
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {address.isDefault && (
+                          <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                            <CheckCircleOutlined /> Default
+                          </span>
+                        )}
+
+                        {address.landmark && (
+                          <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                            Landmark: {address.landmark}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right Side */}
+                    <div className="flex items-center gap-2">
+                      <span className="hidden sm:inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
+                        🏠 {address.label || "Home"}
                       </span>
-                    </div>
 
-                    {/* Address */}
-                    <p className="mt-1 text-sm text-gray-600 line-clamp-2">
-                      {address.street},{" "}
-                      {address.area ? `${address.area}, ` : ""}
-                      {address.city}, {address.state} - {address.zipCode}
-                    </p>
+                      <button
+                        onClick={() =>
+                          router.push(
+                            buildUrl(`/addresses/edit/${addressId}`, { from }),
+                          )
+                        }
+                        aria-label="Edit address"
+                        title="Edit address"
+                        className="p-2 rounded-lg hover:bg-blue-50 transition-all">
+                        <EditOutlined className="text-lg text-blue-600" />
+                      </button>
 
-                    {/* Bottom */}
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {address.isDefault && (
-                        <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                          Default
-                        </span>
-                      )}
-
-                      {address.landmark && (
-                        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                          Landmark: {address.landmark}
-                        </span>
-                      )}
+                      <button
+                        onClick={() => {
+                          setAddressToDelete(address);
+                          setDeleteModalVisible(true);
+                        }}
+                        aria-label="Delete address"
+                        title="Delete address"
+                        className="p-2 rounded-lg hover:bg-red-50 transition-all">
+                        <DeleteOutlined className="text-lg text-red-600" />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Right Side */}
-                  <div className="flex items-center gap-3">
-                    <span className="hidden sm:inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
-                      🏠 {address.label || "Home"}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-4 px-3 pb-3">
+                    {!address.isDefault && (
+                      <Button
+                        type="link"
+                        size="small"
+                        className="p-0 text-emerald-600"
+                        onClick={() => handleSetDefault(addressId)}>
+                        ⭐ Make Default
+                      </Button>
+                    )}
 
-                    <svg
-                      className="h-5 w-5 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M9 18l6-6-6-6"
-                      />
-                    </svg>
+                    {isPickerMode && (
+                      <Button
+                        type="primary"
+                        size="small"
+                        className="ml-auto bg-emerald-600 hover:bg-emerald-700 border-0"
+                        onClick={() => handleSelectForOrder(addressId)}>
+                        Deliver Here
+                      </Button>
+                    )}
                   </div>
                 </div>
-
-                {!address.isDefault && (
-                  <div className="px-3 pb-3">
-                    <Button
-                      type="link"
-                      size="small"
-                      className="p-0 text-emerald-600"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          await setDefaultAddress.mutateAsync(
-                            address.id || address._id,
-                          );
-                          message.success("Set as default");
-                        } catch (err) {
-                          message.error(
-                            err?.message || "Failed to set default",
-                          );
-                        }
-                      }}>
-                      Make Default
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
@@ -317,19 +257,20 @@ export default function AddressesPage() {
         title="Delete Address"
         open={deleteModalVisible}
         onOk={handleDelete}
+        confirmLoading={deleteAddress.isPending}
         onCancel={() => {
           setDeleteModalVisible(false);
-          setSelectedAddress(null);
+          setAddressToDelete(null);
         }}
         okText="Delete"
         cancelText="Cancel"
         okButtonProps={{ danger: true }}>
         <p>Are you sure you want to delete this address?</p>
-        {selectedAddress && (
+        {addressToDelete && (
           <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-            <p className="font-semibold">{selectedAddress.label}</p>
+            <p className="font-semibold">{addressToDelete.label}</p>
             <p className="text-sm text-gray-600">
-              {selectedAddress.street}, {selectedAddress.city}
+              {addressToDelete.street}, {addressToDelete.city}
             </p>
           </div>
         )}

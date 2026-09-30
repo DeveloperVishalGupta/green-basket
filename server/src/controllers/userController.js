@@ -1,4 +1,10 @@
 import User from '../models/User.js';
+import {
+  getAvailability,
+  getTodayId,
+  getTomorrowId,
+  isTodayOrTomorrow,
+} from '../utils/deliveryCapacity.js';
 
 /**
  * User Controller
@@ -166,7 +172,7 @@ class UserController {
    */
   async addAddress(req, res) {
     try {
-      const { label, fullName, phone, street, area, city, state, zipCode, country, landmark, isDefault } = req.body;
+      const { label, fullName, phone, street, area, city, state, zipCode, country, landmark, isDefault, lat, lng } = req.body;
 
       const user = await User.findById(req.user.id);
 
@@ -197,6 +203,7 @@ class UserController {
         country: country || 'India',
         landmark,
         isDefault: isDefault || false,
+        location: lat != null && lng != null ? { lat, lng } : undefined,
       });
 
       await user.save();
@@ -224,7 +231,7 @@ class UserController {
   async updateAddress(req, res) {
     try {
       const { id } = req.params;
-      const { label, fullName, phone, street, area, city, state, zipCode, country, landmark, isDefault } = req.body;
+      const { label, fullName, phone, street, area, city, state, zipCode, country, landmark, isDefault, lat, lng } = req.body;
 
       const user = await User.findById(req.user.id);
 
@@ -263,6 +270,7 @@ class UserController {
       if (country !== undefined) address.country = country;
       if (landmark !== undefined) address.landmark = landmark;
       if (isDefault !== undefined) address.isDefault = isDefault;
+      if (lat != null && lng != null) address.location = { lat, lng };
 
       await user.save();
 
@@ -372,6 +380,89 @@ class UserController {
       res.status(500).json({
         success: false,
         message: 'Failed to set default address',
+        error: error.message,
+      });
+    }
+  }
+  /**
+   * Get delivery date availability (defaults to today + tomorrow)
+   * @route GET /api/users/delivery-availability
+   * @access Private
+   */
+  async getDeliveryAvailability(req, res) {
+    try {
+      const { dates } = req.query;
+      const dateIds = dates
+        ? dates.split(',').map((d) => d.trim()).filter(Boolean)
+        : [getTodayId(), getTomorrowId()];
+
+      const availability = await getAvailability(dateIds);
+
+      res.json({
+        success: true,
+        data: availability,
+      });
+    } catch (error) {
+      console.error('Get delivery availability error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch delivery availability',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Set the user's delivery date preference
+   * @route PUT /api/users/delivery-preference
+   * @access Private
+   */
+  async setDeliveryPreference(req, res) {
+    try {
+      const { date } = req.body;
+
+      if (!date || !isTodayOrTomorrow(date)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Delivery date must be today or tomorrow',
+        });
+      }
+
+      const availability = await getAvailability([date]);
+      if (!availability[date]) {
+        return res.status(400).json({
+          success: false,
+          message: 'Selected delivery date is no longer available',
+          code: 'DELIVERY_DATE_UNAVAILABLE',
+        });
+      }
+
+      const user = await User.findById(req.user.id);
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+      }
+
+      user.deliveryPreference = {
+        date: new Date(date),
+        selectedAt: new Date(),
+      };
+
+      await user.save();
+
+      res.json({
+        success: true,
+        message: 'Delivery preference saved',
+        data: user,
+      });
+    } catch (error) {
+      console.error('Set delivery preference error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to save delivery preference',
         error: error.message,
       });
     }

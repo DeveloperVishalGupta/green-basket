@@ -11,7 +11,6 @@ import {
   Space,
   Avatar,
   Select,
-  DatePicker,
 } from 'antd';
 import {
   DollarOutlined,
@@ -22,8 +21,6 @@ import {
   ArrowDownOutlined,
 } from '@ant-design/icons';
 
-const { RangePicker } = DatePicker;
-
 /**
  * Vendor Dashboard
  * Responsive dashboard with stats, charts, and recent activity
@@ -31,7 +28,6 @@ const { RangePicker } = DatePicker;
  */
 export default function VendorDashboard() {
   const [timeRange, setTimeRange] = useState('week');
-  const [loading, setLoading] = useState(false);
 
   // Mock data - replace with API calls
   const stats = [
@@ -64,15 +60,6 @@ export default function VendorDashboard() {
       icon: <EyeOutlined className="text-2xl text-orange-600" />,
       color: 'orange',
     },
-  ];
-
-  const salesData = [
-    { month: 'Jan', sales: 32000 },
-    { month: 'Feb', sales: 45000 },
-    { month: 'Mar', sales: 38000 },
-    { month: 'Apr', sales: 52000 },
-    { month: 'May', sales: 48000 },
-    { month: 'Jun', sales: 61000 },
   ];
 
   const topProducts = [
@@ -215,28 +202,6 @@ export default function VendorDashboard() {
     },
   ];
 
-  const salesConfig = {
-    data: salesData,
-    xField: 'month',
-    yField: 'sales',
-    smooth: true,
-    color: '#10b981',
-    point: {
-      size: 5,
-      shape: 'circle',
-    },
-    label: {
-      style: {
-        fill: '#666',
-      },
-    },
-    yAxis: {
-      label: {
-        formatter: (v) => `₹${(v / 1000).toFixed(0)}K`,
-      },
-    },
-  };
-
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Page Header */}
@@ -244,7 +209,7 @@ export default function VendorDashboard() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Dashboard</h1>
           <p className="text-sm md:text-base text-gray-600 mt-1">
-            Welcome back! Here's your store overview
+            Welcome back! Here&apos;s your store overview
           </p>
         </div>
         <Space className="w-full sm:w-auto" direction="vertical" size="small">
@@ -313,9 +278,6 @@ export default function VendorDashboard() {
             variant='borderless'
             className="h-full"
           >
-            {/* <div className="h-64 md:h-80">
-              <Line {...salesConfig} />
-            </div> */}
           </Card>
         </Col>
 
