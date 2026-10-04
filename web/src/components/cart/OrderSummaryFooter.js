@@ -9,6 +9,7 @@
 
 import { ShoppingOutlined, TagOutlined } from "@ant-design/icons";
 import { Button } from "antd";
+import FreeDeliveryNudge from "./FreeDeliveryNudge";
 
 export default function OrderSummaryFooter({
   subtotal,
@@ -62,6 +63,10 @@ export default function OrderSummaryFooter({
             </span>
           </div>
         </div>
+
+        {deliveryFee > 0 && (
+          <FreeDeliveryNudge subtotal={subtotal} className="mb-3" />
+        )}
 
         {!canCheckout && (
           <div className="mb-3 flex items-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">

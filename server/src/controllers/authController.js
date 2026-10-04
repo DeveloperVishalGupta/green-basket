@@ -1,4 +1,9 @@
 import crypto from "crypto";
+import {
+  APPROVAL_REQUIRED_ROLES,
+  APPROVAL_STATUS,
+  ROLES,
+} from "../config/roles.js";
 import User from "../models/User.js";
 import { sendTokenResponse } from "../utils/jwt.js";
 import sendEmail from "../utils/sendEmail.js";
@@ -40,6 +45,111 @@ class AuthController {
       sendTokenResponse(user, 201, res);
     } catch (error) {
       console.error("Register error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Registration failed",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Register an admin, vendor or delivery partner.
+   * - vendor / delivery_partner: created as "pending"; no token is issued
+   *   until an admin approves the account.
+   * - admin: requires the server-side invite code (ADMIN_REGISTRATION_CODE),
+   *   so nobody can self-promote to admin. Disabled when the code isn't set.
+   * @route POST /api/auth/register/staff
+   * @access Public
+   */
+  async registerStaff(req, res) {
+    try {
+      const {
+        firstName,
+        lastName,
+        email,
+        password,
+        phone,
+        role,
+        adminInviteCode,
+        businessName,
+        gstNumber,
+        businessAddress,
+        vehicleType,
+        vehicleNumber,
+        licenseNumber,
+        serviceArea,
+      } = req.body;
+
+      if (role === ROLES.ADMIN) {
+        const expected = process.env.ADMIN_REGISTRATION_CODE;
+        if (!expected) {
+          return res.status(403).json({
+            success: false,
+            message: "Admin registration is currently disabled.",
+          });
+        }
+        const given = Buffer.from(String(adminInviteCode || ""));
+        const wanted = Buffer.from(expected);
+        if (
+          given.length !== wanted.length ||
+          !crypto.timingSafeEqual(given, wanted)
+        ) {
+          return res.status(403).json({
+            success: false,
+            message: "Invalid admin invite code.",
+          });
+        }
+      }
+
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Email already registered",
+        });
+      }
+
+      const needsApproval = APPROVAL_REQUIRED_ROLES.includes(role);
+
+      const userData = {
+        firstName,
+        lastName,
+        email,
+        password,
+        phone,
+        role,
+        isVerified: true, // Matches customer flow (OTP currently skipped)
+        approvalStatus: needsApproval
+          ? APPROVAL_STATUS.PENDING
+          : APPROVAL_STATUS.APPROVED,
+      };
+
+      if (role === ROLES.VENDOR) {
+        userData.vendorProfile = { businessName, gstNumber, businessAddress };
+      } else if (role === ROLES.DELIVERY_PARTNER) {
+        userData.deliveryProfile = {
+          vehicleType,
+          vehicleNumber,
+          licenseNumber,
+          serviceArea,
+        };
+      }
+
+      const user = await User.create(userData);
+
+      if (needsApproval) {
+        return res.status(201).json({
+          success: true,
+          pendingApproval: true,
+          message:
+            "Registration received. You can log in once an admin approves your account.",
+        });
+      }
+
+      sendTokenResponse(user, 201, res);
+    } catch (error) {
+      console.error("Register staff error:", error);
       res.status(500).json({
         success: false,
         message: "Registration failed",
@@ -192,6 +302,21 @@ class AuthController {
         return res.status(401).json({
           success: false,
           message: "Invalid credentials",
+        });
+      }
+
+      // Vendors / delivery partners can only log in once approved
+      if (
+        user.approvalStatus &&
+        user.approvalStatus !== APPROVAL_STATUS.APPROVED
+      ) {
+        return res.status(403).json({
+          success: false,
+          approvalStatus: user.approvalStatus,
+          message:
+            user.approvalStatus === APPROVAL_STATUS.REJECTED
+              ? "Your registration was rejected. Please contact support."
+              : "Your account is awaiting admin approval.",
         });
       }
 

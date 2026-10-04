@@ -13,7 +13,7 @@ import { useState } from 'react';
 export default function AdminUsers() {
   const { message } = App.useApp();
   const [pagination, setPagination] = useState({ page: 1, limit: 20 });
-  const [filters, setFilters] = useState({ search: '', role: '', isActive: '' });
+  const [filters, setFilters] = useState({ search: '', role: '', isActive: '', approvalStatus: '' });
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [form] = Form.useForm();
@@ -63,8 +63,7 @@ export default function AdminUsers() {
   const handleUpdate = async (values) => {
     try {
       // await apiClient.put(`/api/admin/users/${selectedUser._id}`, values);
-      message.success('User updated successfully');
-      UsersService.update(selectedUser._id, values);
+      await UsersService.update(selectedUser._id, values);
       message.success('User updated successfully');
       setEditModalVisible(false);
       form.resetFields();
@@ -72,6 +71,18 @@ export default function AdminUsers() {
       refetch();
     } catch (error) {
       message.error(error.response?.data?.message || 'Failed to update user');
+    }
+  };
+
+  const handleApproval = async (userId, approvalStatus) => {
+    try {
+      await UsersService.update(userId, { approvalStatus });
+      message.success(
+        approvalStatus === 'approved' ? 'User approved' : 'User rejected',
+      );
+      refetch();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Failed to update approval');
     }
   };
 
@@ -117,10 +128,11 @@ export default function AdminUsers() {
           admin: 'red',
           vendor: 'blue',
           customer: 'green',
+          delivery_partner: 'purple',
         };
         return (
           <Tag color={colors[role]}>
-            {role.toUpperCase()}
+            {role.replace('_', ' ').toUpperCase()}
           </Tag>
         );
       },
@@ -135,6 +147,42 @@ export default function AdminUsers() {
           {isActive ? 'Active' : 'Inactive'}
         </Tag>
       ),
+    },
+    {
+      title: 'Approval',
+      dataIndex: 'approvalStatus',
+      key: 'approvalStatus',
+      width: 170,
+      render: (status, record) => {
+        const value = status || 'approved';
+        const colors = { approved: 'green', pending: 'orange', rejected: 'red' };
+        return (
+          <Space size="small">
+            <Tag color={colors[value]}>{value.toUpperCase()}</Tag>
+            {value !== 'approved' && (
+              <Button
+                type="link"
+                size="small"
+                onClick={() => handleApproval(record._id, 'approved')}
+              >
+                Approve
+              </Button>
+            )}
+            {value === 'pending' && (
+              <Popconfirm
+                title="Reject this registration?"
+                onConfirm={() => handleApproval(record._id, 'rejected')}
+                okText="Reject"
+                okButtonProps={{ danger: true }}
+              >
+                <Button type="link" size="small" danger>
+                  Reject
+                </Button>
+              </Popconfirm>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: 'Verified',
@@ -208,6 +256,18 @@ export default function AdminUsers() {
             <Select.Option value="customer">Customer</Select.Option>
             <Select.Option value="vendor">Vendor</Select.Option>
             <Select.Option value="admin">Admin</Select.Option>
+            <Select.Option value="delivery_partner">Delivery Partner</Select.Option>
+          </Select>
+          <Select
+            placeholder="Approval"
+            value={filters.approvalStatus}
+            onChange={value => setFilters(prev => ({ ...prev, approvalStatus: value }))}
+            className="w-32"
+            allowClear
+          >
+            <Select.Option value="pending">Pending</Select.Option>
+            <Select.Option value="approved">Approved</Select.Option>
+            <Select.Option value="rejected">Rejected</Select.Option>
           </Select>
           <Select
             placeholder="Status"
@@ -226,7 +286,7 @@ export default function AdminUsers() {
           columns={columns}
           rowKey="_id"
           loading={isLoading}
-          scroll={{ x: 860 }}
+          scroll={{ x: 1030 }}
           pagination={{
             current: pagination.page,
             pageSize: pagination.limit,
@@ -262,6 +322,7 @@ export default function AdminUsers() {
               <Select.Option value="customer">Customer</Select.Option>
               <Select.Option value="vendor">Vendor</Select.Option>
               <Select.Option value="admin">Admin</Select.Option>
+              <Select.Option value="delivery_partner">Delivery Partner</Select.Option>
             </Select>
           </Form.Item>
 

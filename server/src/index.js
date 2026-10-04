@@ -20,6 +20,7 @@ import authRoutes from "./routes/auth.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import couponRoutes from "./routes/coupon.routes.js";
+import deliveryPartnerRoutes from "./routes/deliveryPartner.routes.js";
 import deliveryRoutes from "./routes/delivery.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import orderRoutes from "./routes/order.routes.js";
@@ -59,13 +60,14 @@ const defaultAllowedOrigins = [
   "http://127.0.0.1:3000",
   "http://localhost:3001",
   "http://127.0.0.1:3001",
-  "https://iqrafashions.com",
-  "https://www.iqrafashions.com",
+  "https://green-basket.in",
+  "https://www.green-basket.in",
 ];
 
 const envAllowedOrigins = (process.env.CLIENT_URL || "")
   .split(",")
-  .map((origin) => origin.trim())
+  // Browsers send Origin without a trailing slash, so strip it here
+  .map((origin) => origin.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 
 const allowedOrigins = new Set([
@@ -124,6 +126,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/delivery", deliveryRoutes);
+app.use("/api/delivery-partner", deliveryPartnerRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);

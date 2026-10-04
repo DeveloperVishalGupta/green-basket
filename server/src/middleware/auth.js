@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { APPROVAL_STATUS } from '../config/roles.js';
 import User from '../models/User.js';
 
 /**
@@ -33,6 +34,15 @@ export const authenticate = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: 'User not found or account is inactive.',
+      });
+    }
+
+    // Accounts awaiting approval (or rejected) can't use existing tokens
+    if (user.approvalStatus && user.approvalStatus !== APPROVAL_STATUS.APPROVED) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account is not approved yet.',
+        approvalStatus: user.approvalStatus,
       });
     }
 

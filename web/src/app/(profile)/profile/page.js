@@ -164,6 +164,20 @@ export default function ProfilePage() {
       ];
     }
 
+    if (user.role === "delivery_partner") {
+      return [
+        {
+          icon: <ShopOutlined className="text-lg" />,
+          iconBg: "bg-purple-100",
+          iconColor: "text-purple-600",
+          label: "Delivery Dashboard",
+          description: "View your deliveries",
+          onClick: () => router.push("/delivery/dashboard"),
+        },
+        ...common,
+      ];
+    }
+
     return common;
   };
 
@@ -220,7 +234,9 @@ export default function ProfilePage() {
       ? { color: "red", icon: <CrownOutlined /> }
       : user.role === "vendor"
         ? { color: "blue", icon: <ShopOutlined /> }
-        : { color: "green", icon: <UserOutlined /> };
+        : user.role === "delivery_partner"
+          ? { color: "purple", icon: <ShopOutlined /> }
+          : { color: "green", icon: <UserOutlined /> };
 
   const OptionRow = ({ item, isLast }) => (
     <button

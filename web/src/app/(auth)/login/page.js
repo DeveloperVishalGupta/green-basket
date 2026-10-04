@@ -4,6 +4,7 @@ import { App, Button, Checkbox, Divider, Form, Input } from "antd";
 import Link from "next/link";
 
 import { authAPI } from "@/lib/api";
+import { getRoleHome } from "@/lib/roles";
 import { useCartStore } from "@/store/cartStore";
 import { GoogleOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
 import Image from "next/image";
@@ -43,13 +44,7 @@ export default function LoginPage() {
         }
 
         // Redirect based on role - use window.location for hard navigation
-        if (response.data.user.role === "admin") {
-          window.location.href = "/admin/dashboard";
-        } else if (response.data.user.role === "vendor") {
-          window.location.href = "/vendor/dashboard";
-        } else {
-          window.location.href = "/";
-        }
+        window.location.href = getRoleHome(response.data.user.role);
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -112,7 +107,7 @@ export default function LoginPage() {
 
               <h1 className="text-4xl font-bold text-gray-900">Welcome Back</h1>
 
-              <p className="mt-2 text-gray-500">Sign in to continue shopping</p>
+              <p className="mt-2 text-gray-500">Sign in to your account</p>
             </div>
 
             <Form form={form} layout="vertical" onFinish={handleLogin}>
@@ -194,6 +189,14 @@ export default function LoginPage() {
                 href="/register"
                 className="ml-2 font-semibold text-green-600 hover:text-green-700">
                 Create Account
+              </Link>
+            </p>
+            <p className="mt-2 text-center text-sm text-gray-500">
+              Vendor, delivery partner or admin?
+              <Link
+                href="/register/partner"
+                className="ml-2 font-semibold text-green-600 hover:text-green-700">
+                Register here
               </Link>
             </p>
           </div>

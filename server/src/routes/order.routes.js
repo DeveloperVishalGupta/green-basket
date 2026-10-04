@@ -1,5 +1,6 @@
 import express from "express";
 import { body } from "express-validator";
+import deliveryPartnerController from "../controllers/deliveryPartnerController.js";
 import orderController from "../controllers/orderController.js";
 import { authenticate, isAuthorize } from "../middleware/auth.js";
 import { validate, validateSchema } from "../middleware/validate.js";
@@ -195,6 +196,19 @@ router.put(
     validate,
   ],
   orderController.updateOrderShipment,
+);
+
+/**
+ * @route   PUT /api/orders/:id/assign-delivery-partner
+ * @desc    Assign (or unassign, with null) a delivery partner to an order
+ * @access  Private (Admin only)
+ */
+router.put(
+  "/:id/assign-delivery-partner",
+  authenticate,
+  isAuthorize("admin"),
+  [body("deliveryPartnerId").optional({ nullable: true }).isMongoId(), validate],
+  deliveryPartnerController.assignPartner,
 );
 
 export default router;

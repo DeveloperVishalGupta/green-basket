@@ -1,5 +1,6 @@
 import express from "express";
 import { body } from "express-validator";
+import { ROLES, STAFF_REGISTRATION_ROLES } from "../config/roles.js";
 import authController from "../controllers/authController.js";
 import { authenticate } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
@@ -24,6 +25,50 @@ router.post(
     validate,
   ],
   authController.register,
+);
+
+/**
+ * @route   POST /api/auth/register/staff
+ * @desc    Register an admin, vendor or delivery partner (role-specific fields)
+ * @access  Public (admin needs invite code; vendor/delivery need approval)
+ */
+const requiredWhenRole = (field, role, label) =>
+  body(field)
+    .if(body("role").equals(role))
+    .trim()
+    .notEmpty()
+    .withMessage(`${label} is required`);
+
+router.post(
+  "/register/staff",
+  [
+    body("role")
+      .isIn(STAFF_REGISTRATION_ROLES)
+      .withMessage(
+        `Role must be one of: ${STAFF_REGISTRATION_ROLES.join(", ")}`,
+      ),
+    body("firstName").trim().notEmpty().withMessage("First name is required"),
+    body("lastName").trim().notEmpty().withMessage("Last name is required"),
+    body("email").isEmail().withMessage("Please provide a valid email"),
+    body("password")
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters"),
+    body("phone")
+      .trim()
+      .matches(/^[0-9]{10}$/)
+      .withMessage("Please provide a valid 10-digit phone number"),
+    requiredWhenRole("adminInviteCode", ROLES.ADMIN, "Admin invite code"),
+    requiredWhenRole("businessName", ROLES.VENDOR, "Business name"),
+    requiredWhenRole("vehicleType", ROLES.DELIVERY_PARTNER, "Vehicle type"),
+    requiredWhenRole("vehicleNumber", ROLES.DELIVERY_PARTNER, "Vehicle number"),
+    requiredWhenRole(
+      "licenseNumber",
+      ROLES.DELIVERY_PARTNER,
+      "Driving license number",
+    ),
+    validate,
+  ],
+  authController.registerStaff,
 );
 
 /**

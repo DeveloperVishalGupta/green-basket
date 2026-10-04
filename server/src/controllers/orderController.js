@@ -17,9 +17,12 @@ import Notification from "../models/Notification.js";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
-import loyaltyService from "../services/loyaltyService.js";
 import orderFulfillmentService from "../services/orderFulfillmentService.js";
 import orderNotificationService from "../services/orderNotificationService.js";
+import {
+  grantLoyaltyOnDelivery,
+  notifyCustomerOfStatus,
+} from "../services/orderStatusService.js";
 import {
   getAvailability,
   getTodayId,
@@ -1015,6 +1018,36 @@ class OrderController {
 
       const previousStatus = order.status;
 
+      // An order can't be delivered while its payment is unsettled. A COD
+      // order marked delivered by an admin is recorded as cash received
+      // (the implicit behaviour before payment tracking existed); anything
+      // else with unsettled payment (e.g. failed prepayment) is rejected.
+      if (
+        status === "delivered" &&
+        previousStatus !== "delivered" &&
+        order.payment?.status !== "completed"
+      ) {
+        if (
+          order.payment?.method === "cod" &&
+          order.payment?.status === "pending"
+        ) {
+          order.payment.status = "completed";
+          order.payment.collectedMethod = "cash";
+          order.payment.collectedBy = req.user._id;
+          order.payment.collectedAt = new Date();
+          order.payment.paidAt = new Date();
+          order.statusHistory.push({
+            status: previousStatus,
+            note: "Cash on delivery recorded as received by admin when marking the order delivered",
+          });
+        } else {
+          return res.status(400).json({
+            success: false,
+            message: `Cannot mark as delivered: payment is ${order.payment?.status || "unsettled"}.`,
+          });
+        }
+      }
+
       // Handle stock updates based on status change
       if (
         status === "confirmed" &&
@@ -1169,69 +1202,12 @@ class OrderController {
         // Don't fail the status update if email fails
       }
 
-      // Create notification for user
-      try {
-        const notificationMessages = {
-          pending: {
-            title: "Order Pending",
-            message: `Your order #${order.orderNumber} is pending confirmation.`,
-          },
-          confirmed: {
-            title: "Order Confirmed",
-            message: `Your order #${order.orderNumber} has been confirmed and is being processed.`,
-          },
-          processing: {
-            title: "Order Processing",
-            message: `Your order #${order.orderNumber} is being prepared for shipment.`,
-          },
-          shipped: {
-            title: "Order Shipped",
-            message: `Your order #${order.orderNumber} has been shipped. Track it using tracking number: ${order.trackingNumber || "N/A"}`,
-          },
-          delivered: {
-            title: "Order Delivered",
-            message: `Your order #${order.orderNumber} has been delivered. Thank you for shopping with us!`,
-          },
-          cancelled: {
-            title: "Order Cancelled",
-            message: `Your order #${order.orderNumber} has been cancelled. ${order.cancellationReason || ""}`,
-          },
-          refunded: {
-            title: "Order Refunded",
-            message: `Your order #${order.orderNumber} has been refunded. The amount will be credited to your account.`,
-          },
-        };
-
-        const notificationData = notificationMessages[status];
-        if (notificationData) {
-          await Notification.createNotification(order.user, {
-            type: `order_${status}`,
-            title: notificationData.title,
-            message: notificationData.message,
-            order: order._id,
-            data: {
-              orderNumber: order.orderNumber,
-              status: status,
-              trackingNumber: order.trackingNumber,
-            },
-          });
-        }
-      } catch (notificationError) {
-        console.error("❌ Failed to create notification:", notificationError);
-        // Don't fail the status update if notification fails
-      }
+      // Notify the customer (shared with the delivery-partner flow)
+      await notifyCustomerOfStatus(order, status);
 
       // Every 10th delivered order earns the customer a loyalty coupon.
       if (status === "delivered" && previousStatus !== "delivered") {
-        try {
-          const user = await User.findById(order.user);
-          await loyaltyService.checkAndGrantMilestoneCoupon(order.user, user);
-        } catch (loyaltyError) {
-          console.error(
-            "❌ Failed to check/grant loyalty milestone coupon:",
-            loyaltyError,
-          );
-        }
+        await grantLoyaltyOnDelivery(order);
       }
 
       res.json({

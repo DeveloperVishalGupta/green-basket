@@ -1,9 +1,11 @@
 "use client";
 
+import FreeDeliveryNudge from "@/components/cart/FreeDeliveryNudge";
+import { useCartStore } from "@/store/cartStore";
 import { CheckCircleOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Cart Notification Component
@@ -13,6 +15,50 @@ import { useEffect, useState } from "react";
 export default function CartNotification({ product, onClose }) {
   const [visible, setVisible] = useState(true);
   const [progress, setProgress] = useState(100);
+  const [drag, setDrag] = useState({ x: 0, y: 0, active: false });
+  const startPoint = useRef(null);
+  const cartSubtotal = useCartStore((state) =>
+    state.items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+  );
+
+  const SWIPE_THRESHOLD = 70;
+
+  const dismiss = (x = 0, y = 0) => {
+    // Fly the card off-screen in the swipe direction, then unmount
+    setDrag({ x, y, active: false });
+    setVisible(false);
+    setTimeout(() => onClose?.(), 300);
+  };
+
+  const handlePointerDown = (e) => {
+    startPoint.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handlePointerMove = (e) => {
+    if (!startPoint.current) return;
+    const dx = e.clientX - startPoint.current.x;
+    // Only allow downward vertical movement (up is not a dismiss gesture)
+    const dy = Math.max(0, e.clientY - startPoint.current.y);
+    // Capture the pointer only once it's a real drag, so taps still reach
+    // the buttons/links inside the card.
+    if (!drag.active && (Math.abs(dx) > 5 || dy > 5)) {
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    }
+    setDrag({ x: dx, y: dy, active: Math.abs(dx) > 5 || dy > 5 });
+  };
+
+  const handlePointerEnd = () => {
+    if (!startPoint.current) return;
+    startPoint.current = null;
+    const { x, y } = drag;
+    if (Math.abs(x) > SWIPE_THRESHOLD && Math.abs(x) >= y) {
+      dismiss(x > 0 ? window.innerWidth : -window.innerWidth, 0);
+    } else if (y > SWIPE_THRESHOLD) {
+      dismiss(0, window.innerHeight);
+    } else {
+      setDrag({ x: 0, y: 0, active: false });
+    }
+  };
 
   useEffect(() => {
     if (!product) return;
@@ -57,7 +103,20 @@ export default function CartNotification({ product, onClose }) {
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       }`}
       style={{ width: "calc(100% - 2rem)", maxWidth: "400px" }}>
-      <div className="bg-white rounded-2xl shadow-2xl border-2 border-emerald-500 overflow-hidden">
+      <div
+        className="bg-white rounded-2xl shadow-2xl border-2 border-emerald-500 overflow-hidden"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
+        style={{
+          transform: `translate(${drag.x}px, ${drag.y}px)`,
+          opacity: drag.active
+            ? Math.max(0.4, 1 - Math.max(Math.abs(drag.x), drag.y) / 300)
+            : undefined,
+          transition: drag.active ? "none" : "transform 0.3s, opacity 0.3s",
+          touchAction: "none",
+        }}>
         {/* Progress Bar */}
         <div className="h-1 bg-gray-100">
           <div
@@ -131,6 +190,8 @@ export default function CartNotification({ product, onClose }) {
               </svg>
             </button>
           </div>
+
+          <FreeDeliveryNudge subtotal={cartSubtotal} className="mt-3" />
 
           {/* Action Buttons */}
           <div className="flex gap-2 mt-3">

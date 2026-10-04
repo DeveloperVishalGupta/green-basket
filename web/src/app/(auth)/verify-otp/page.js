@@ -1,6 +1,7 @@
 'use client';
 
 import { authAPI } from '@/lib/api';
+import { getRoleHome } from '@/lib/roles';
 import { useCartStore } from '@/store/cartStore';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { App, Button, Spin } from 'antd';
@@ -96,14 +97,7 @@ function VerifyOTPContent() {
                 }
                 
                 // Redirect based on role
-                const userRole = response.data.user?.role;
-                if (userRole === 'admin') {
-                    window.location.href = '/admin/dashboard';
-                } else if (userRole === 'vendor') {
-                    window.location.href = '/vendor/dashboard';
-                } else {
-                    window.location.href = '/';
-                }
+                window.location.href = getRoleHome(response.data.user?.role);
             }
         } catch (error) {
             console.error('OTP verification error:', error);

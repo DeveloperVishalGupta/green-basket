@@ -1,3 +1,4 @@
+import { useAuth } from '@/hooks/useAuth';
 import { addressAPI } from '@/lib/addressAPI';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -17,40 +18,56 @@ export function useAddresses(options = {}) {
 
 export function useAddAddress() {
   const queryClient = useQueryClient();
+  const { refreshUser } = useAuth();
   return useMutation({
     mutationFn: addressAPI.add,
-    onSuccess: () => {
+    // Pages like checkout read addresses from the auth user, so refresh it
+    // too (awaited, so it's up to date before any navigation).
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: addressKeys.list() });
+      await refreshUser();
     },
   });
 }
 
 export function useDeleteAddress() {
   const queryClient = useQueryClient();
+  const { refreshUser } = useAuth();
   return useMutation({
     mutationFn: addressAPI.delete,
-    onSuccess: () => {
+    // Pages like checkout read addresses from the auth user, so refresh it
+    // too (awaited, so it's up to date before any navigation).
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: addressKeys.list() });
+      await refreshUser();
     },
   });
 }
 
 export function useSetDefaultAddress() {
   const queryClient = useQueryClient();
+  const { refreshUser } = useAuth();
   return useMutation({
     mutationFn: addressAPI.setDefault,
-    onSuccess: () => {
+    // Pages like checkout read addresses from the auth user, so refresh it
+    // too (awaited, so it's up to date before any navigation).
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: addressKeys.list() });
+      await refreshUser();
     },
   });
 }
 
 export function useUpdateAddress() {
   const queryClient = useQueryClient();
+  const { refreshUser } = useAuth();
   return useMutation({
     mutationFn: ({ id, data }) => addressAPI.update(id, data),
-    onSuccess: () => {
+    // Pages like checkout read addresses from the auth user, so refresh it
+    // too (awaited, so it's up to date before any navigation).
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: addressKeys.list() });
+      await refreshUser();
     },
   });
 }

@@ -21,18 +21,29 @@ export default function HeaderSearch() {
   const [modalOpen, setModalOpen] = useState(false);
   const [results, setResults] = useState({ products: [], categories: [] });
   const searchRef = useRef(null);
+  const modalSearchRef = useRef(null);
   const debounceTimer = useRef(null);
 
-  // Handle click outside to close dropdown (desktop inline only)
+  // Handle click outside to close dropdown. The mobile search lives in a
+  // modal (rendered in a portal, outside searchRef), so it must count as
+  // "inside" too — otherwise tapping a result closes the dropdown on
+  // mousedown/touchstart, before the click reaches the link.
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
+      const inside = [searchRef.current, modalSearchRef.current].some(
+        (el) => el && el.contains(event.target),
+      );
+      if (!inside) {
         setShowDropdown(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
   // Debounced search function
@@ -280,7 +291,7 @@ export default function HeaderSearch() {
         style={{ top: 12 }}
         styles={{ body: { padding: 12 } }}
         className="lg:hidden">
-        <div className="relative">
+        <div ref={modalSearchRef} className="relative">
           {renderInput({ autoFocus: true, showButton: true })}
           {renderDropdown()}
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
+import { isPortalRole } from "@/lib/roles";
 import { useCartStore } from "@/store/cartStore";
 import { useUIStore } from "@/store/uiStore";
 import {
@@ -61,7 +62,7 @@ export default function BottomNav() {
   }, [pathname]);
 
   // Hide bottom nav for admin and vendor (after all hooks)
-  if (loading || !user || user.role === "admin" || user.role === "vendor") {
+  if (loading || !user || isPortalRole(user.role)) {
     return null;
   }
 

@@ -33,8 +33,10 @@ export function AuthProvider({ children }) {
    * Fetch current user from API.
    * Guarded by isFetchingRef to prevent concurrent calls.
    */
-  const fetchUser = useCallback(async () => {
-    if (isFetchingRef.current) return;
+  const fetchUser = useCallback(async ({ silent = false } = {}) => {
+    // A silent refresh (e.g. after editing addresses) must not be skipped by
+    // an in-flight background validation, which may already hold stale data.
+    if (isFetchingRef.current && !silent) return;
 
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("token");
@@ -47,7 +49,9 @@ export function AuthProvider({ children }) {
 
     try {
       isFetchingRef.current = true;
-      setLoading(true);
+      // Silent refreshes keep the UI mounted instead of showing the
+      // full-screen loader (which would reset in-progress page state).
+      if (!silent) setLoading(true);
       const response = await authAPI.getMe();
       const userData = response.data.user || response.data.data;
       setUser(userData);
@@ -169,7 +173,7 @@ export function AuthProvider({ children }) {
 
   const refreshUser = async () => {
     if (typeof window !== "undefined" && localStorage.getItem("token")) {
-      await fetchUser();
+      await fetchUser({ silent: true });
     }
   };
 

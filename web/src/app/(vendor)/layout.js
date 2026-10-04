@@ -15,6 +15,8 @@ import {
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
+import { ROLES } from '@/lib/roles';
 import Link from 'next/link';
 
 const { Header, Sider, Content } = Layout;
@@ -49,23 +51,8 @@ export default function VendorLayout({ children }) {
   }, []);
 
   // Redirect if not vendor
-  useEffect(() => {
-    if (!loading) {
-      // Redirect if not logged in
-      if (!user) {
-        router.push('/login?redirect=/vendor/dashboard');
-        return;
-      }
-      // Redirect if not vendor
-      if (user.role !== 'vendor') {
-        if (user.role === 'admin') {
-          router.push('/admin/dashboard');
-        } else {
-          router.push('/');
-        }
-      }
-    }
-  }, [user, loading, router]);
+  // Only vendors may be here; others are sent to their own home
+  useRoleGuard(ROLES.VENDOR);
 
   // Show loading state
   if (loading) {

@@ -49,6 +49,11 @@ export default function ProductDetailPage({ params }) {
   } = useCartStore();
   const { slug } = use(params);
 
+  // Always open the product page scrolled to the top
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [slug]);
+
   // ── UI state ──
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -570,15 +575,13 @@ export default function ProductDetailPage({ params }) {
                         ? "text-green-600 font-medium"
                         : "text-red-600 font-medium"
                     }>
-                    {inStock
-                      ? `In Stock (${product.stock} ${product.stockUnit || "g"})`
-                      : "Out of Stock"}
+                    {inStock ? `In Stock` : "Out of Stock"}
                   </span>
                 </div>
               </div>
 
-              {/* ── Desktop: quantity + add to cart ── */}
-              <div className="hidden lg:block space-y-3">
+              {/* ── Quantity + add to cart (below price card) ── */}
+              <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-semibold text-gray-700 w-8">
                     Qty
@@ -824,51 +827,6 @@ export default function ProductDetailPage({ params }) {
             </section>
           )}
         </div>
-
-        {/* ── Mobile fixed bottom bar (logged-in users only) ── */}
-        {user && (
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-2xl">
-            <div className="px-4 py-3">
-              {inCart ? (
-                <div className="flex gap-2">
-                  <div className="flex flex-1 items-center justify-between bg-emerald-50 border-2 border-emerald-500 rounded-xl px-3">
-                    <span className="font-semibold text-emerald-700 text-sm">
-                      In Cart:
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleDecrementCart}
-                        className="h-7 w-7 flex items-center justify-center rounded-lg border border-emerald-600 bg-white text-emerald-600">
-                        <MinusOutlined className="text-xs" />
-                      </button>
-                      <span className="font-bold text-emerald-600 w-6 text-center">
-                        {cartItem?.quantity || 0}
-                      </span>
-                      <button
-                        onClick={handleIncrementCart}
-                        className="h-7 w-7 flex items-center justify-center rounded-lg border border-emerald-600 bg-white text-emerald-600">
-                        <PlusOutlined className="text-xs" />
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => router.push("/cart")}
-                    className="h-12 px-5 rounded-xl border-2 border-emerald-600 text-emerald-600 font-semibold text-sm hover:bg-emerald-50 transition-all flex items-center gap-1">
-                    <ShoppingCartOutlined /> View
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={handleAddToCart}
-                  disabled={!inStock}
-                  className="w-full h-12 rounded-xl bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
-                  <ShoppingCartOutlined />
-                  {inStock ? "+ Add to Cart" : "Out of Stock"}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
 
         <BottomNav />
       </div>

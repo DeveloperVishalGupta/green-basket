@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { getRoleHome, isPortalRole } from '@/lib/roles';
 import Header from '@/components/layout/Header';
 import DeliveryPreferenceModal from '@/components/delivery/DeliveryPreferenceModal';
 
@@ -14,14 +15,10 @@ export default function ShopLayout({ children }) {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  // Redirect admins and vendors to their dashboards
+  // Redirect non-customer roles to their own portals
   useEffect(() => {
-    if (!loading && user) {
-      if (user.role === 'admin') {
-        router.push('/admin/dashboard');
-      } else if (user.role === 'vendor') {
-        router.push('/vendor/dashboard');
-      }
+    if (!loading && user && isPortalRole(user.role)) {
+      router.push(getRoleHome(user.role));
     }
   }, [user, loading, router]);
 
@@ -38,7 +35,7 @@ export default function ShopLayout({ children }) {
   }
 
   // Return null if redirecting admin/vendor
-  if (user && (user.role === 'admin' || user.role === 'vendor')) {
+  if (user && isPortalRole(user.role)) {
     return null;
   }
 

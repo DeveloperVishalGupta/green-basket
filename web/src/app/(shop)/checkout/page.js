@@ -1,7 +1,9 @@
 "use client";
 
 import PartialStockConfirmModal from "@/components/checkout/PartialStockConfirmModal";
+import { getDeliveryFee } from "@/components/cart/constants";
 import DeliveryScheduleNotice from "@/components/cart/DeliveryScheduleNotice";
+import FreeDeliveryNudge from "@/components/cart/FreeDeliveryNudge";
 import PageHeader from "@/components/layout/PageHeader";
 import { useSetDefaultAddress } from "@/hooks/useAddresses";
 import { useAuth } from "@/hooks/useAuth";
@@ -125,7 +127,11 @@ export default function CheckoutPage() {
 
   // Update selected address when user data loads
   useEffect(() => {
-    if (user?.addresses && !selectedAddress) {
+    // Also re-pick when the selected address no longer exists (e.g. deleted)
+    const selectionIsValid = user?.addresses?.some(
+      (a) => a._id === selectedAddress,
+    );
+    if (user?.addresses && (!selectedAddress || !selectionIsValid)) {
       const addressIdFromQuery = searchParams?.get("addressId");
       const defaultAddress = user.addresses.find((add) => add.isDefault);
       const firstAddress = user.addresses[0];
@@ -202,9 +208,7 @@ export default function CheckoutPage() {
   const discount = appliedCoupon?.discount ?? 0;
   const deliveryFee = appliedCoupon?.freeDelivery
     ? 0
-    : subtotal > 199
-      ? 0
-      : 25;
+    : getDeliveryFee(subtotal);
   const total = Math.max(0, subtotal - discount + deliveryFee);
 
   /**
@@ -227,9 +231,7 @@ export default function CheckoutPage() {
       );
       const orderDeliveryFee = appliedCoupon?.freeDelivery
         ? 0
-        : orderSubtotal > 199
-          ? 0
-          : 25;
+        : getDeliveryFee(orderSubtotal);
       const orderTotal = Math.max(
         0,
         orderSubtotal - discount + orderDeliveryFee,
@@ -1208,6 +1210,10 @@ export default function CheckoutPage() {
                     </span>
                   </div>
                 </div>
+
+                {deliveryFee > 0 && (
+                  <FreeDeliveryNudge subtotal={subtotal} className="mb-3" />
+                )}
 
                 {deliveryFee === 0 && (
                   <div className="bg-green-50 border border-green-200 rounded-lg py-1.5 text-center mb-3">

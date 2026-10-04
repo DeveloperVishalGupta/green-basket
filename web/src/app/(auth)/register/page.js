@@ -286,6 +286,14 @@ export default function RegisterPage() {
                     Sign In
                   </Link>
                 </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  Vendor, delivery partner or admin?{" "}
+                  <Link
+                    href="/register/partner"
+                    className="text-emerald-600 font-semibold hover:underline">
+                    Register here
+                  </Link>
+                </p>
               </div>
             </div>
           </div>

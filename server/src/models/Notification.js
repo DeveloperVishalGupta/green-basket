@@ -30,6 +30,8 @@ const notificationSchema = new mongoose.Schema(
         'order_updated',
         // A loyalty-milestone coupon was auto-granted (see loyaltyService).
         'coupon_unlocked',
+        // Delivery partner recorded cash / a UPI payment was confirmed
+        'payment_received',
         'message',
         'promotion',
         'system',

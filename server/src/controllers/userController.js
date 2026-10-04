@@ -65,6 +65,19 @@ class UserController {
       if (phone) user.phone = phone;
       if (avatar) user.avatar = avatar;
 
+      // Delivery partners can maintain their vehicle details (whitelisted)
+      if (user.role === 'delivery_partner' && req.body.deliveryProfile) {
+        const incoming = req.body.deliveryProfile;
+        user.deliveryProfile = user.deliveryProfile || {};
+        ['vehicleType', 'vehicleNumber', 'licenseNumber', 'serviceArea'].forEach(
+          (field) => {
+            if (typeof incoming[field] === 'string') {
+              user.deliveryProfile[field] = incoming[field].trim();
+            }
+          },
+        );
+      }
+
       await user.save();
 
       res.json({

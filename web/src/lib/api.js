@@ -102,6 +102,13 @@ export const authAPI = {
   register: (userData) => apiClient.post("/api/auth/register", userData),
 
   /**
+   * Register an admin / vendor / delivery partner (role-specific fields)
+   * @param {Object} userData - includes `role` plus that role's extra fields
+   */
+  registerStaff: (userData) =>
+    apiClient.post("/api/auth/register/staff", userData),
+
+  /**
    * Verify OTP for email verification
    * @param {Object} data - { email, otp }
    */
@@ -499,6 +506,31 @@ export const paymentAPI = {
    */
   handlePaymentFailure: (orderId, errorData) =>
     apiClient.post("/api/payment/failure", { orderId, ...errorData }),
+};
+
+/**
+ * Delivery partner API endpoints (order, delivery status & payment workflow)
+ */
+export const deliveryPartnerAPI = {
+  /** @param {"available"|"active"|"completed"} scope */
+  getOrders: (scope = "available") =>
+    apiClient.get("/api/delivery-partner/orders", { params: { scope } }),
+  getOrder: (id) => apiClient.get(`/api/delivery-partner/orders/${id}`),
+  acceptOrder: (id) =>
+    apiClient.post(`/api/delivery-partner/orders/${id}/accept`),
+  /** @param {"shipped"|"delivered"} status */
+  updateStatus: (id, status) =>
+    apiClient.put(`/api/delivery-partner/orders/${id}/status`, { status }),
+  collectCash: (id) =>
+    apiClient.post(`/api/delivery-partner/orders/${id}/payment/cash`),
+  /** UPI payment request (upi:// link) for the order's exact total */
+  createUpiQr: (id) =>
+    apiClient.post(`/api/delivery-partner/orders/${id}/payment/upi-qr`),
+  /** Partner confirms the UPI payment arrived; `reference` = UTR (optional) */
+  confirmUpi: (id, reference) =>
+    apiClient.post(`/api/delivery-partner/orders/${id}/payment/upi-confirm`, {
+      reference,
+    }),
 };
 
 export default apiClient;

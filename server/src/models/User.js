@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import mongoose from "mongoose";
+import { ALL_ROLES, APPROVAL_STATUS, ROLES } from "../config/roles.js";
 
 /**
  * User Schema
@@ -39,8 +40,27 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["customer", "admin", "vendor"],
-      default: "customer",
+      enum: ALL_ROLES,
+      default: ROLES.CUSTOMER,
+    },
+    // Vendors and delivery partners must be approved by an admin before
+    // they can log in. Existing, customer and admin accounts are "approved".
+    approvalStatus: {
+      type: String,
+      enum: Object.values(APPROVAL_STATUS),
+      default: APPROVAL_STATUS.APPROVED,
+    },
+    // Role-specific details (only populated for the matching role)
+    vendorProfile: {
+      businessName: { type: String, trim: true },
+      gstNumber: { type: String, trim: true },
+      businessAddress: { type: String, trim: true },
+    },
+    deliveryProfile: {
+      vehicleType: { type: String, trim: true },
+      vehicleNumber: { type: String, trim: true },
+      licenseNumber: { type: String, trim: true },
+      serviceArea: { type: String, trim: true },
     },
     avatar: {
       url: String,

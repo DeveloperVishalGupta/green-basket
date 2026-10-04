@@ -149,7 +149,28 @@ const orderSchema = new mongoose.Schema(
       },
       transactionId: String,
       paidAt: Date,
+      // How the money was actually collected at the door (the order's
+      // `method` stays what the customer chose at checkout, e.g. "cod").
+      collectedMethod: {
+        type: String,
+        enum: ["cash", "upi"],
+      },
+      // Who recorded the payment (the delivery partner / admin who
+      // confirmed cash or UPI received).
+      collectedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      collectedAt: Date,
     },
+    // Delivery partner responsible for this order. Set when a partner
+    // accepts it (or an admin assigns it); only that partner (and admins)
+    // may change the order's delivery/payment status.
+    deliveryPartner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    deliveryPartnerAssignedAt: Date,
     refund: {
       id: String, // Razorpay refund ID
       paymentId: String, // Razorpay payment ID
@@ -334,6 +355,7 @@ const orderSchema = new mongoose.Schema(
 orderSchema.index({ user: 1 });
 // Note: orderNumber index is created automatically by unique: true
 orderSchema.index({ status: 1 });
+orderSchema.index({ deliveryPartner: 1, status: 1 });
 orderSchema.index({ createdAt: -1 });
 
 /**

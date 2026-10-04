@@ -22,8 +22,14 @@ export default function ProductCard({ product }) {
   const { message } = App.useApp();
   const router = useRouter();
   const { user } = useAuth();
-  const { addItem, items, incrementItem, decrementItem, removeItem, setPendingProduct } =
-    useCartStore();
+  const {
+    addItem,
+    items,
+    incrementItem,
+    decrementItem,
+    removeItem,
+    setPendingProduct,
+  } = useCartStore();
   const [mounted, setMounted] = useState(false);
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [showCartNotification, setShowCartNotification] = useState(false);
@@ -310,9 +316,7 @@ export default function ProductCard({ product }) {
                     ? "text-green-600 font-medium"
                     : "text-red-600 font-medium"
                 }>
-                {product.stock > 0
-                  ? `In Stock (${product.stock} ${product.stockUnit || "g"})`
-                  : "Out of Stock"}
+                {product.stock > 0 ? `In Stock` : "Out of Stock"}
               </span>
             </div>
           )}

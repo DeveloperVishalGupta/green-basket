@@ -390,7 +390,11 @@ class PaymentController {
   async handleWebhook(req, res) {
     try {
       const signature = req.headers['x-razorpay-signature'];
-      const webhookBody = JSON.stringify(req.body);
+      // Razorpay signs the exact raw bytes; fall back to re-serialising only
+      // if the raw body wasn't captured.
+      const webhookBody = req.rawBody
+        ? req.rawBody.toString('utf8')
+        : JSON.stringify(req.body);
 
       // Verify webhook signature
       const isValid = verifyWebhookSignature(webhookBody, signature);
@@ -404,7 +408,7 @@ class PaymentController {
       }
 
       const event = req.body.event;
-      const payload = req.body.payload.payment.entity;
+      const payload = req.body.payload?.payment?.entity || {};
 
       // Handle different event types
       switch (event) {

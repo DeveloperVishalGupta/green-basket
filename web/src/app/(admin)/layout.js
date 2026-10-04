@@ -1,6 +1,8 @@
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
+import { ROLES } from '@/lib/roles';
 import {
   AppstoreOutlined,
   DashboardOutlined,
@@ -40,23 +42,8 @@ export default function AdminLayout({ children }) {
   }, []);
 
   // Show loading while checking auth
-  useEffect(() => {
-    if (!loading) {
-      // Redirect if not logged in
-      if (!user) {
-        router.push('/');
-        return;
-      }
-      // Redirect if not admin
-      if (user.role !== 'admin') {
-        if (user.role === 'vendor') {
-          router.push('/vendor/dashboard');
-        } else {
-          router.push('/');
-        }
-      }
-    }
-  }, [user, loading, router]);
+  // Only admins may be here; others are sent to their own home
+  useRoleGuard(ROLES.ADMIN);
 
   // Show loading state
   if (loading) {

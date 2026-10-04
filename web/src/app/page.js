@@ -9,6 +9,8 @@ import BottomNav from "@/components/layout/BottomNav";
 import Header from "@/components/layout/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrders } from "@/hooks/useOrders";
+import { getRoleHome, isPortalRole } from "@/lib/roles";
+import { useProducts } from "@/hooks/useProducts";
 import { useCartStore } from "@/store/cartStore";
 import {
   CheckCircleFilled,
@@ -41,14 +43,14 @@ export default function Home() {
 
   const hasOrders = ordersData?.data?.length > 0;
 
+  // Total products listed on the site (limit 1: only the count is needed)
+  const { data: productsCountData } = useProducts({ limit: 1 });
+  const totalProducts = productsCountData?.pagination?.total;
+
   // Redirect admins and vendors to their dashboards
   useEffect(() => {
-    if (!loading && user) {
-      if (user.role === "admin") {
-        router.push("/admin/dashboard");
-      } else if (user.role === "vendor") {
-        router.push("/vendor/dashboard");
-      }
+    if (!loading && user && isPortalRole(user.role)) {
+      router.push(getRoleHome(user.role));
     }
   }, [user, loading, router]);
 
@@ -69,7 +71,7 @@ export default function Home() {
   }
 
   // Return null if redirecting
-  if (user && (user.role === "admin" || user.role === "vendor")) {
+  if (user && isPortalRole(user.role)) {
     return null;
   }
 
@@ -151,7 +153,7 @@ export default function Home() {
               <div className="hidden mt-12 md:grid grid-cols-3 gap-4 sm:gap-8">
                 <div>
                   <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    100+
+                    {totalProducts ?? "—"}
                   </h3>
 
                   <p className="text-sm text-gray-500">Products</p>

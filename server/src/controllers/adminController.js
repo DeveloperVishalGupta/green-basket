@@ -1,3 +1,4 @@
+import { ALL_ROLES, APPROVAL_STATUS } from '../config/roles.js';
 import Category from '../models/Category.js';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
@@ -856,6 +857,7 @@ class AdminController {
         limit = 20,
         role,
         isActive,
+        approvalStatus,
         search,
         sort = '-createdAt'
       } = req.query;
@@ -864,6 +866,7 @@ class AdminController {
       const query = {};
 
       if (role) query.role = role;
+      if (approvalStatus) query.approvalStatus = approvalStatus;
       if (isActive !== undefined && isActive !== '') query.isActive = isActive === 'true';
       if (search) {
         query.$or = [
@@ -911,7 +914,36 @@ class AdminController {
   async updateUser(req, res) {
     try {
       const { id } = req.params;
-      const { role, isActive } = req.body;
+      const { role, isActive, approvalStatus } = req.body;
+
+      if (role && !ALL_ROLES.includes(role)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid role. Allowed: ${ALL_ROLES.join(', ')}`,
+        });
+      }
+      if (
+        approvalStatus &&
+        !Object.values(APPROVAL_STATUS).includes(approvalStatus)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid approval status',
+        });
+      }
+
+      // An admin must not lock themselves out or demote themselves
+      if (
+        id === String(req.user._id) &&
+        ((role && role !== req.user.role) ||
+          isActive === false ||
+          (approvalStatus && approvalStatus !== APPROVAL_STATUS.APPROVED))
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'You cannot change your own role or status',
+        });
+      }
 
       const user = await User.findById(id);
 
@@ -924,6 +956,7 @@ class AdminController {
 
       if (role) user.role = role;
       if (isActive !== undefined) user.isActive = isActive;
+      if (approvalStatus) user.approvalStatus = approvalStatus;
 
       await user.save();
 
