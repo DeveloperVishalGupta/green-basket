@@ -19,6 +19,21 @@ import { useEffect, useState } from "react";
 
 const { TextArea } = Input;
 
+const MONTH_OPTIONS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+].map((label, i) => ({ label, value: i + 1 }));
+
 export default function CreateUpdateProductModal({
   open,
   onClose,
@@ -29,6 +44,17 @@ export default function CreateUpdateProductModal({
 
   const [form] = Form.useForm();
   const sellingType = Form.useWatch("sellingType", form);
+  const seasonStart = Form.useWatch("seasonStartMonth", form);
+  const seasonEnd = Form.useWatch("seasonEndMonth", form);
+
+  // Derived from the month range, never set manually
+  const currentMonth = new Date().getMonth() + 1;
+  const isSeasonalNow =
+    !!seasonStart &&
+    !!seasonEnd &&
+    (seasonStart <= seasonEnd
+      ? currentMonth >= seasonStart && currentMonth <= seasonEnd
+      : currentMonth >= seasonStart || currentMonth <= seasonEnd);
 
   const [fileList, setFileList] = useState([]);
   const [categoriesOptions, setCategoriesOptions] = useState([]);
@@ -167,7 +193,10 @@ export default function CreateUpdateProductModal({
       const formData = new FormData();
 
       Object.entries(values).forEach(([key, value]) => {
-        if (value !== null && typeof value === "object") {
+        if (key === "seasonStartMonth" || key === "seasonEndMonth") {
+          // Empty string tells the server to clear the season range
+          formData.append(key, value ?? "");
+        } else if (value !== null && typeof value === "object") {
           formData.append(key, JSON.stringify(value));
         } else {
           formData.append(key, value);
@@ -278,7 +307,6 @@ export default function CreateUpdateProductModal({
             isBestSeller: false,
             storageInstructions: "",
             isOrganic: false,
-            isSeasonal: false,
           }}>
           {/* Product Name */}
           <Form.Item
@@ -586,12 +614,55 @@ export default function CreateUpdateProductModal({
               <Switch checkedChildren="Yes" unCheckedChildren="No" />
             </Form.Item>
 
-            {/* Seasonal */}
+            {/* Seasonal (read-only): on when the current month is inside the season range */}
             <Form.Item
               label="Seasonal Product"
-              name="isSeasonal"
-              valuePropName="checked">
-              <Switch checkedChildren="Yes" unCheckedChildren="No" />
+              extra="Set automatically from the season range below">
+              <Switch
+                checked={isSeasonalNow}
+                disabled
+                checkedChildren="Yes"
+                unCheckedChildren="No"
+              />
+            </Form.Item>
+
+            {/* Season range: product is seasonal when the current month falls inside */}
+            <Form.Item
+              label="Season Start Month"
+              name="seasonStartMonth"
+              dependencies={["seasonEndMonth"]}
+              rules={[
+                ({ getFieldValue }) => ({
+                  validator: (_, value) =>
+                    !value && getFieldValue("seasonEndMonth")
+                      ? Promise.reject(new Error("Select start month"))
+                      : Promise.resolve(),
+                }),
+              ]}>
+              <Select
+                allowClear
+                placeholder="Not seasonal"
+                options={MONTH_OPTIONS}
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="Season End Month"
+              name="seasonEndMonth"
+              dependencies={["seasonStartMonth"]}
+              rules={[
+                ({ getFieldValue }) => ({
+                  validator: (_, value) =>
+                    !value && getFieldValue("seasonStartMonth")
+                      ? Promise.reject(new Error("Select end month"))
+                      : Promise.resolve(),
+                }),
+              ]}>
+              <Select
+                allowClear
+                placeholder="Not seasonal"
+                options={MONTH_OPTIONS}
+              />
             </Form.Item>
 
             {/* Best Seller */}

@@ -12,6 +12,7 @@ import {
   EditOutlined,
   EyeOutlined,
   PlusOutlined,
+  PoweroffOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import {
@@ -21,10 +22,12 @@ import {
   Card,
   Input,
   Modal,
+  Popconfirm,
   Select,
   Space,
   Table,
   Tag,
+  Tooltip,
 } from "antd";
 import NextImage from "next/image";
 import { useEffect, useState } from "react";
@@ -33,7 +36,7 @@ import ViewProductModal from "./view-product-modal";
 
 export default function AdminProducts() {
   const { message } = App.useApp();
-  const [pagination, setPagination] = useState({ page: 1, limit: 20 });
+  const [pagination, setPagination] = useState({ page: 1, limit: 10 });
   const [filters, setFilters] = useState({
     search: "",
     category: "",
@@ -146,6 +149,22 @@ export default function AdminProducts() {
       refetchProducts();
     } catch (error) {
       message.error("Failed to update product");
+    }
+  };
+
+  const handleToggleActive = async (product) => {
+    try {
+      await ProductsService.update(product._id, {
+        isActive: !product.isActive,
+      });
+      message.success(
+        `Product ${product.isActive ? "deactivated" : "activated"} successfully`,
+      );
+      refetchProducts();
+    } catch (error) {
+      message.error(
+        error.response?.data?.message || "Failed to update product status",
+      );
     }
   };
 
@@ -293,16 +312,6 @@ export default function AdminProducts() {
       },
     },
     {
-      title: "Status",
-      dataIndex: "isActive",
-      key: "isActive",
-      render: (isActive) => (
-        <Tag color={isActive ? "green" : "red"}>
-          {isActive ? "Active" : "Inactive"}
-        </Tag>
-      ),
-    },
-    {
       title: "Featured",
       dataIndex: "isFeatured",
       key: "isFeatured",
@@ -320,7 +329,20 @@ export default function AdminProducts() {
       key: "actions",
       width: 200,
       render: (_, record) => (
-        <Space>
+        <Space size={0} wrap>
+          <Popconfirm
+            title={`${record.isActive ? "Deactivate" : "Activate"} this product?`}
+            onConfirm={() => handleToggleActive(record)}
+            okText="Yes"
+            cancelText="No">
+            <Tooltip title={record.isActive ? "Deactivate" : "Activate"}>
+              <Button
+                type="link"
+                danger={record.isActive}
+                icon={<PoweroffOutlined />}
+              />
+            </Tooltip>
+          </Popconfirm>
           <Button
             type="link"
             icon={<EyeOutlined />}
@@ -414,7 +436,6 @@ export default function AdminProducts() {
           columns={columns}
           rowKey="_id"
           loading={productsLoading}
-          scroll={{ x: 1200 }}
           pagination={{
             current: pagination.page,
             pageSize: pagination.limit,

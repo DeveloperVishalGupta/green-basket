@@ -116,9 +116,16 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    isSeasonal: {
-      type: Boolean,
-      default: false,
+    // Season range (1 = Jan ... 12 = Dec). May wrap the year, e.g. 11 to 2.
+    seasonStartMonth: {
+      type: Number,
+      min: 1,
+      max: 12,
+    },
+    seasonEndMonth: {
+      type: Number,
+      min: 1,
+      max: 12,
     },
     isBestSeller: {
       type: Boolean,
@@ -198,6 +205,20 @@ productSchema.index({ "rating.average": -1 });
 
 // Text index for search
 productSchema.index({ name: "text", description: "text" });
+
+/**
+ * Virtual: product is seasonal when the current month falls inside its
+ * season range (the range may wrap around the year end).
+ */
+productSchema.virtual("isSeasonal").get(function () {
+  const start = this.seasonStartMonth;
+  const end = this.seasonEndMonth;
+  if (!start || !end) return false;
+  const month = new Date().getMonth() + 1;
+  return start <= end
+    ? month >= start && month <= end
+    : month >= start || month <= end;
+});
 
 /**
  * Virtual to check if product is in stock

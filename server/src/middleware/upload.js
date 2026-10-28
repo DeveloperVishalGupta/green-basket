@@ -148,7 +148,6 @@ export const parseProductFormData = (req, res, next) => {
 
     [
       "isOrganic",
-      "isSeasonal",
       "isBestSeller",
       "isActive",
       "isFeatured",
@@ -162,6 +161,15 @@ export const parseProductFormData = (req, res, next) => {
     if (req.body.stock) {
       req.body.stock = Number(req.body.stock);
     }
+
+    ["seasonStartMonth", "seasonEndMonth"].forEach((field) => {
+      if (req.body[field] !== undefined) {
+        req.body[field] =
+          req.body[field] === "" || req.body[field] === "null"
+            ? null
+            : Number(req.body[field]);
+      }
+    });
 
     next();
   } catch (err) {

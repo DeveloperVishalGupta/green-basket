@@ -94,7 +94,9 @@ export const createProductSchema = Joi.object({
 
   isOrganic: Joi.boolean().optional(),
 
-  isSeasonal: Joi.boolean().optional(),
+  seasonStartMonth: Joi.number().integer().min(1).max(12).allow(null).optional(),
+
+  seasonEndMonth: Joi.number().integer().min(1).max(12).allow(null).optional(),
 
   isBestSeller: Joi.boolean().optional(),
 

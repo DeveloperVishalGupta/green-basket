@@ -100,7 +100,27 @@ class ProductController {
 
       // Seasonal filter
       if (isSeasonal !== undefined) {
-        query.isSeasonal = isSeasonal === "true";
+        const month = new Date().getMonth() + 1;
+        const inSeason = {
+          $or: [
+            {
+              $expr: { $lte: ["$seasonStartMonth", "$seasonEndMonth"] },
+              seasonStartMonth: { $lte: month },
+              seasonEndMonth: { $gte: month },
+            },
+            {
+              $expr: { $gt: ["$seasonStartMonth", "$seasonEndMonth"] },
+              $or: [
+                { seasonStartMonth: { $lte: month } },
+                { seasonEndMonth: { $gte: month } },
+              ],
+            },
+          ],
+        };
+        query.$and = [
+          ...(query.$and || []),
+          isSeasonal === "true" ? inSeason : { $nor: [inSeason] },
+        ];
       }
 
       // Best Seller filter
@@ -330,7 +350,8 @@ class ProductController {
         vendor: req.user.id,
 
         isOrganic: req.body.isOrganic ?? false,
-        isSeasonal: req.body.isSeasonal ?? false,
+        seasonStartMonth: req.body.seasonStartMonth ?? undefined,
+        seasonEndMonth: req.body.seasonEndMonth ?? undefined,
         isBestSeller: req.body.isBestSeller ?? false,
 
         storageInstructions: req.body.storageInstructions,
@@ -481,9 +502,12 @@ class ProductController {
           req.body.isOrganic === true || req.body.isOrganic === "true";
       }
 
-      if (req.body.isSeasonal !== undefined) {
-        updateData.isSeasonal =
-          req.body.isSeasonal === true || req.body.isSeasonal === "true";
+      if (req.body.seasonStartMonth !== undefined) {
+        updateData.seasonStartMonth = req.body.seasonStartMonth;
+      }
+
+      if (req.body.seasonEndMonth !== undefined) {
+        updateData.seasonEndMonth = req.body.seasonEndMonth;
       }
 
       if (req.body.isBestSeller !== undefined) {
